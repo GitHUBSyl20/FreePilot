@@ -1,0 +1,22 @@
+{
+  "name": "@freepilot/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "doctor": "expo-doctor"
+  },
+  "dependencies": {
+    "@freepilot/finance-core": "*",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "expo": "^55.0.24",
+    "react": "19.2.0",
+    "react-native": "0.83.6"
+  },
+  "devDependencies": {
+    "expo-doctor": "^1.18.22",
+    "typescript": "~5.9.2"
+  }
+}

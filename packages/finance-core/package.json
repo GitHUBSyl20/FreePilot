@@ -1,0 +1,19 @@
+{
+  "name": "@freepilot/finance-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./operations": "./src/operations.ts",
+    "./seed": "./src/seed.ts",
+    "./storage": "./src/storage.ts",
+    "./calculations/are": "./src/calculations/are.ts",
+    "./calculations/netAvailable": "./src/calculations/netAvailable.ts",
+    "./calculations/tax": "./src/calculations/tax.ts",
+    "./calculations/urssaf": "./src/calculations/urssaf.ts",
+    "./monthly/snapshot": "./src/monthly/snapshot.ts"
+  },
+  "types": "./src/index.ts",
+  "sideEffects": false
+}

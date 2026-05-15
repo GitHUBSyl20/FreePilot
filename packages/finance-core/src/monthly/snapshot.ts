@@ -1,4 +1,4 @@
-import { AppSettings, MonthlySnapshotInput } from '../../types/finance';
+import type { AppSettings, MonthlySnapshotInput } from '../types';
 import { calculateEstimatedARE } from '../calculations/are';
 import { calculateNetAvailable } from '../calculations/netAvailable';
 

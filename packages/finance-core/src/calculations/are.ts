@@ -1,4 +1,4 @@
-import { AppSettings, CalculationDetail } from '../../types/finance';
+import type { AppSettings, CalculationDetail } from '../types';
 import { asRate, roundCurrency, safeNumber } from './common';
 
 export const calculateTheoreticalMonthlyARE = (settings: AppSettings): CalculationDetail => {

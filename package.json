@@ -3,9 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "overrides": {
+    "react-native": "0.83.6"
+  },
   "scripts": {
     "build": "vite build",
     "dev": "vite",
+    "mobile:dev": "npm run start --workspace @freepilot/mobile",
+    "mobile:android": "npm run android --workspace @freepilot/mobile",
     "preview": "vite preview",
     "cap:sync": "npm run build && cap sync",
     "android:add": "npm run build && cap add android",
@@ -26,7 +35,8 @@
   },
   "dependencies": {
     "@capacitor/core": "^7.6.5",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "@freepilot/finance-core": "*",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
   }
 }

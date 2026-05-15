@@ -1,6 +1,6 @@
-import { AppSettings } from '../types/finance';
-import { calculateARECutoff } from '../lib/calculations/are';
-import { calculateMonthlySnapshot } from '../lib/monthly/snapshot';
+import type { AppSettings } from './types';
+import { calculateARECutoff } from './calculations/are';
+import { calculateMonthlySnapshot } from './monthly/snapshot';
 
 export const defaultSettings: AppSettings = {
   areDailyAmount: 50.39,

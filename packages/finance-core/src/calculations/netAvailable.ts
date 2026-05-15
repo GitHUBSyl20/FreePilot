@@ -1,4 +1,4 @@
-import { AppSettings, CalculationDetail, NetAvailableInput } from '../../types/finance';
+import type { AppSettings, CalculationDetail, NetAvailableInput } from '../types';
 import { roundCurrency } from './common';
 import { calculateIncomeTaxProvision } from './tax';
 import { calculateUrssafProvision } from './urssaf';
