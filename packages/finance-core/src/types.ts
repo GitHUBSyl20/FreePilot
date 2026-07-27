@@ -39,6 +39,45 @@ export type MonthlySnapshotInput = {
   personalTransfersAlreadyMade: number;
 };
 
+/** Données saisies pour un mois donné, en entrée du calcul de trésorerie. */
+export type MonthlyRecord = {
+  month: string;
+  /** CA réellement encaissé sur le mois. */
+  collectedRevenue: number;
+  /**
+   * ARE mensuelle pleine annoncée par France Travail, avant déduction liée
+   * à l'activité. Saisie par mois : elle est révisée dans le temps
+   * (1 476 € puis 1 416 € sur l'historique de référence).
+   */
+  fullMonthlyARE: number;
+  /** ARE effectivement versée, quand elle est connue. */
+  actualARE?: number | null;
+};
+
+/** Résultat du calcul pour un mois, avec le décalage M / M+1. */
+export type MonthlyCashflow = {
+  month: string;
+  collectedRevenue: number;
+  /** Déduction générée par le CA de ce mois, imputée sur l'ARE du mois suivant. */
+  areDeduction: CalculationDetail;
+  /** Déduction héritée du mois précédent, imputée sur l'ARE de ce mois. */
+  carriedDeduction: number;
+  /** ARE théorique du mois = ARE pleine − déduction du mois précédent. */
+  theoreticalARE: CalculationDetail;
+  actualARE: number | null;
+  /** ARE retenue pour la trésorerie : la réelle si connue, sinon la théorique. */
+  effectiveARE: number;
+  /** Jours de droits consommés, décomptés sur l'ARE effective. */
+  areDaysConsumed: number;
+  areDaysPreserved: number;
+  urssafProvision: CalculationDetail;
+  /** Mois de paiement effectif de l'Urssaf due sur le CA de ce mois. */
+  urssafPaymentMonth: string;
+  incomeTaxProvision: CalculationDetail;
+  /** Trésorerie du mois : CA − Urssaf + ARE effective. */
+  netFinal: CalculationDetail;
+};
+
 export type AccountKind = 'professional' | 'personal' | 'provision' | 'savings';
 
 export type Account = {

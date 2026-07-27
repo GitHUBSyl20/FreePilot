@@ -45,17 +45,42 @@ export const calculateEstimatedARE = (collectedRevenue: number, settings: AppSet
   };
 };
 
-export const calculateARECutoff = (settings: AppSettings): CalculationDetail => {
-  const theoretical = calculateTheoreticalMonthlyARE(settings).value;
+/**
+ * Conversion d'un montant d'ARE en jours d'indemnisation.
+ * Les jours non consommés un mois donné sont reportés en fin de droits :
+ * c'est le capital de jours restants qui se préserve.
+ */
+export const calculateAREDays = (
+  areAmount: number,
+  settings: AppSettings,
+): { consumed: number; preserved: number } => {
+  const dailyAmount = safeNumber(settings.areDailyAmount);
+  const consumed = dailyAmount > 0 ? safeNumber(areAmount) / dailyAmount : 0;
+
+  return { consumed, preserved: safeNumber(settings.theoreticalMonthlyDays) - consumed };
+};
+
+/**
+ * CA encaissé à partir duquel l'ARE du mois suivant tombe à zéro.
+ *
+ * `fullMonthlyARE` permet de raisonner sur l'ARE pleine réellement notifiée
+ * par France Travail plutôt que sur le produit montant journalier × jours,
+ * qui n'en est qu'une approximation.
+ */
+export const calculateARECutoff = (settings: AppSettings, fullMonthlyARE?: number): CalculationDetail => {
+  const reference = fullMonthlyARE === undefined ? calculateTheoreticalMonthlyARE(settings).value : safeNumber(fullMonthlyARE);
   const rate = (1 - asRate(settings.bncAbatementRate)) * asRate(settings.franceTravailDeductionRate);
   const warnings: string[] = [];
   if (rate <= 0) warnings.push('Taux de déduction ARE invalide.');
-  const value = rate > 0 ? roundCurrency(theoretical / rate) : 0;
+  const value = rate > 0 ? roundCurrency(reference / rate) : 0;
 
   return {
     value,
-    formula: `${theoretical} / ((1 - ${settings.bncAbatementRate}%) * ${settings.franceTravailDeductionRate}%)`,
-    assumptions: ['ARE théorique mensuelle', 'Taux de déduction ARE'],
+    formula: `${reference} / ((1 - ${settings.bncAbatementRate}%) * ${settings.franceTravailDeductionRate}%)`,
+    assumptions: [
+      fullMonthlyARE === undefined ? 'ARE théorique mensuelle' : 'ARE pleine notifiée',
+      'Taux de déduction ARE',
+    ],
     warnings,
   };
 };

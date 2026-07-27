@@ -29,7 +29,7 @@ const settings: AppSettings = {
   urssafSocialContributionRate: 25.6,
   professionalTrainingContributionRate: 0.2,
   totalUrssafProvisionRate: 25.8,
-  prudentIncomeTaxProvisionRate: 10,
+  prudentIncomeTaxProvisionRate: 11,
   versementLiberatoireEnabled: false,
   versementLiberatoireRateBNC: 2.2,
 };
@@ -48,8 +48,19 @@ describe('calculation rules', () => {
     expect(calculateUrssafProvision(1000, settings).value).toBe(258);
   });
 
-  it('calculates income tax provision', () => {
-    expect(calculateIncomeTaxProvision(1000, settings).value).toBe(100);
+  it('calculates income tax provision on income after abatement', () => {
+    // 11 % sur 66 % du CA = 7,26 % du CA.
+    expect(calculateIncomeTaxProvision(1000, settings).value).toBe(72.6);
+  });
+
+  it('applies versement libératoire directly to collected revenue', () => {
+    const liberatoire = { ...settings, versementLiberatoireEnabled: true };
+    expect(calculateIncomeTaxProvision(1000, liberatoire).value).toBe(22);
+  });
+
+  it('rounds half a cent up despite binary floating point', () => {
+    // 1625 × 66 % × 11 % = 117,975 exactement.
+    expect(calculateIncomeTaxProvision(1625, settings).value).toBe(117.98);
   });
 
   it('calculates net available', () => {
@@ -59,7 +70,7 @@ describe('calculation rules', () => {
         { monthlyCollectedRevenue: 1000, estimatedARE: are, professionalExpenses: 200, personalTransfersAlreadyMade: 150 },
         settings,
       ).value,
-    ).toBe(1341.7);
+    ).toBe(1369.1);
   });
 
   it('counts paid invoices in month only and ignores sent invoices', () => {

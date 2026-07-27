@@ -11,7 +11,7 @@ export const defaultSettings: AppSettings = {
   urssafSocialContributionRate: 25.6,
   professionalTrainingContributionRate: 0.2,
   totalUrssafProvisionRate: 25.8,
-  prudentIncomeTaxProvisionRate: 10,
+  prudentIncomeTaxProvisionRate: 11,
   versementLiberatoireEnabled: false,
   versementLiberatoireRateBNC: 2.2,
 };
