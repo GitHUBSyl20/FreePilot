@@ -1,4 +1,4 @@
-import { createInitialFinanceData } from '@freepilot/finance-core';
+import { createInitialFinanceData, needsMigration } from '@freepilot/finance-core';
 import { describe, expect, it } from 'vitest';
 import { buildExportFileName, readFinanceDataFile, serializeFinanceData } from '../src/dataTransfer';
 
@@ -14,7 +14,7 @@ describe('export des données', () => {
 
     expect(envelope.app).toBe('freepilot');
     expect(envelope.exportedAt).toBe('2026-07-27T10:00:00.000Z');
-    expect(envelope.data.version).toBe(1);
+    expect(envelope.data.version).toBe(2);
   });
 });
 
@@ -38,9 +38,50 @@ describe('import des données', () => {
   });
 
   it('refuse une version de données inconnue', async () => {
-    const payload = { ...createInitialFinanceData(), version: 2 };
+    const payload = { ...createInitialFinanceData(), version: 99 };
 
     await expect(readFinanceDataFile(asFile(JSON.stringify(payload)))).rejects.toThrow(/Version de données/);
+  });
+
+  it('migre une sauvegarde v1 dépourvue de charges et d’ARE mensuelle', async () => {
+    const { recurringCharges: _charges, areMonths: _months, ...v2 } = createInitialFinanceData();
+    const legacy = { ...v2, version: 1 };
+
+    const imported = await readFinanceDataFile(asFile(JSON.stringify(legacy)));
+
+    expect(imported.version).toBe(2);
+    expect(imported.recurringCharges).toEqual([]);
+    expect(imported.areMonths).toEqual([]);
+    // Les factures et opérations d'origine survivent à la migration.
+    expect(imported.invoices).toHaveLength(3);
+    expect(imported.transactions).toHaveLength(4);
+  });
+
+  it('détecte un réglage manquant même à la version courante', () => {
+    const base = createInitialFinanceData();
+    const { monthlyRevenueTakeoffThreshold: _missing, ...partialSettings } = base.settings;
+
+    // Déjà en v2 : seul le réglage absent doit déclencher la normalisation.
+    expect(needsMigration({ ...base, settings: partialSettings })).toBe(true);
+    expect(needsMigration(base)).toBe(false);
+  });
+
+  it('détecte une collection manquante même à la version courante', () => {
+    const { recurringCharges: _removed, ...withoutCharges } = createInitialFinanceData();
+
+    expect(needsMigration(withoutCharges)).toBe(true);
+  });
+
+  it('complète les réglages absents d’une sauvegarde plus ancienne', async () => {
+    const base = createInitialFinanceData();
+    const { monthlyRevenueSafetyThreshold: _threshold, ...partialSettings } = base.settings;
+    const legacy = { ...base, version: 1, settings: partialSettings };
+
+    const imported = await readFinanceDataFile(asFile(JSON.stringify(legacy)));
+
+    expect(imported.settings.monthlyRevenueSafetyThreshold).toBe(1000);
+    // Les réglages présents ne sont pas écrasés par les valeurs par défaut.
+    expect(imported.settings.areDailyAmount).toBe(base.settings.areDailyAmount);
   });
 
   it('refuse un fichier dont une collection est manquante', async () => {

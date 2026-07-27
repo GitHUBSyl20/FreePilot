@@ -17,6 +17,10 @@ export type AppSettings = {
   prudentIncomeTaxProvisionRate: number;
   versementLiberatoireEnabled: boolean;
   versementLiberatoireRateBNC: number;
+  /** CA mensuel couvrant les charges fixes : le plancher à tenir. */
+  monthlyRevenueSafetyThreshold: number;
+  /** CA mensuel visé pour ne plus dépendre de l'ARE. */
+  monthlyRevenueTakeoffThreshold: number;
 };
 
 export type NetAvailableInput = {
@@ -108,16 +112,70 @@ export type Transaction = {
   invoiceId?: string;
 };
 
+/** Rattachement d'une charge : elle pèse sur le compte pro ou sur le perso. */
+export type ChargeScope = 'professional' | 'personal';
+
+/**
+ * Charge fixe qui retombe chaque mois (loyer, abonnements, assurances).
+ *
+ * En micro-BNC ces charges ne réduisent ni l'Urssaf ni l'impôt : l'abattement
+ * forfaitaire les remplace. Elles n'entrent donc que dans la trésorerie.
+ */
+export type RecurringCharge = {
+  id: string;
+  label: string;
+  /** Montant mensuel, positif. */
+  amount: number;
+  scope: ChargeScope;
+  /** Jour de prélèvement, quand il est connu. */
+  dayOfMonth: number | null;
+  active: boolean;
+};
+
+/** ARE d'un mois donné, telle que notifiée puis telle que versée. */
+export type MonthlyAREEntry = {
+  month: string;
+  /** ARE pleine notifiée par France Travail, avant déduction. */
+  fullMonthlyARE: number;
+  /** ARE effectivement versée, renseignée après coup. */
+  actualARE: number | null;
+};
+
+export const FINANCE_DATA_VERSION = 2;
+
 export type FinanceData = {
-  version: 1;
+  version: typeof FINANCE_DATA_VERSION;
   settings: AppSettings;
   accounts: Account[];
   invoices: EditableInvoice[];
   transactions: Transaction[];
+  recurringCharges: RecurringCharge[];
+  areMonths: MonthlyAREEntry[];
 };
 
 export type AccountBalance = Account & {
   balance: number;
+};
+
+export type RecurringChargeTotals = {
+  professional: number;
+  personal: number;
+  total: number;
+};
+
+/** Vue consolidée d'un mois : trésorerie, charges et reste à vivre. */
+export type MonthlyOutlook = {
+  month: string;
+  cashflow: MonthlyCashflow;
+  recurringCharges: RecurringChargeTotals;
+  /** Dépenses ponctuelles saisies sur le mois, hors charges fixes. */
+  variableExpenses: number;
+  /** Ce qui reste une fois l'impôt provisionné et toutes les charges payées. */
+  resteAVivre: CalculationDetail;
+  /** CA à partir duquel l'ARE du mois suivant tombe à zéro. */
+  areCutoff: CalculationDetail;
+  /** ARE théorique du mois suivant, compte tenu du CA encaissé ce mois-ci. */
+  nextMonthARE: number;
 };
 
 export type DashboardProjection = {
@@ -125,14 +183,19 @@ export type DashboardProjection = {
   kpis: {
     caEncaisse: number;
     facturesImpayees: number;
+    areDuMois: number;
     areEstimeeM1: number;
-    netDisponible: number;
+    netFinal: number;
+    chargesFixes: number;
+    resteAVivre: number;
     seuilCoupureARE: number;
+    joursAreRestants: number;
   };
   formulas: {
     are: string;
-    net: string;
+    resteAVivre: string;
   };
+  outlook: MonthlyOutlook;
   accountBalances: AccountBalance[];
   recentTransactions: Transaction[];
 };

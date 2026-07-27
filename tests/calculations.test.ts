@@ -32,6 +32,8 @@ const settings: AppSettings = {
   prudentIncomeTaxProvisionRate: 11,
   versementLiberatoireEnabled: false,
   versementLiberatoireRateBNC: 2.2,
+  monthlyRevenueSafetyThreshold: 1000,
+  monthlyRevenueTakeoffThreshold: 1500,
 };
 
 describe('calculation rules', () => {
@@ -125,9 +127,9 @@ describe('calculation rules', () => {
     expect(after).toBe(before);
   });
 
-  it('expenses reduce professional balance and net available', () => {
+  it('expenses reduce professional balance and reste à vivre', () => {
     const data = createInitialFinanceData();
-    const before = projectDashboard(data, '2026-05').kpis.netDisponible;
+    const before = projectDashboard(data, '2026-05').kpis.resteAVivre;
     const withExpense = addExpense(data, {
       label: 'Achat logiciel',
       amount: 100,
@@ -135,7 +137,7 @@ describe('calculation rules', () => {
       accountId: 'account-pro',
     });
 
-    expect(projectDashboard(withExpense, '2026-05').kpis.netDisponible).toBe(before - 100);
+    expect(projectDashboard(withExpense, '2026-05').kpis.resteAVivre).toBe(before - 100);
     expect(calculateAccountBalances(withExpense).find((account) => account.id === 'account-pro')?.balance).toBe(3700);
   });
 
@@ -166,10 +168,10 @@ describe('calculation rules', () => {
 
     const updated = updateTransaction(data, expense!.id, { label: 'Outils corrigés', amount: 300 });
     expect(updated.transactions.find((transaction) => transaction.id === expense!.id)?.label).toBe('Outils corrigés');
-    expect(projectDashboard(updated, '2026-05').kpis.netDisponible).toBe(projectDashboard(data, '2026-05').kpis.netDisponible - 50);
+    expect(projectDashboard(updated, '2026-05').kpis.resteAVivre).toBe(projectDashboard(data, '2026-05').kpis.resteAVivre - 50);
 
     const deleted = deleteTransaction(updated, expense!.id);
     expect(deleted.transactions.some((transaction) => transaction.id === expense!.id)).toBe(false);
-    expect(projectDashboard(deleted, '2026-05').kpis.netDisponible).toBe(projectDashboard(data, '2026-05').kpis.netDisponible + 250);
+    expect(projectDashboard(deleted, '2026-05').kpis.resteAVivre).toBe(projectDashboard(data, '2026-05').kpis.resteAVivre + 250);
   });
 });

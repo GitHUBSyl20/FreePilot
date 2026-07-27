@@ -282,6 +282,51 @@ select {
   font-size: 0.82rem;
 }
 
+/* Le sélecteur de section se distingue des sous-onglets par un fond plein. */
+.tabs.sections {
+  margin-bottom: 10px;
+}
+
+.tabs.sections button {
+  background: rgb(20 33 61 / 6%);
+}
+
+.tabs.sections button.active {
+  color: #ffffff;
+  background: #14213d;
+}
+
+.balance-card.negative {
+  background: linear-gradient(145deg, #7f1d1d, #b91c1c);
+}
+
+.gauge {
+  position: relative;
+  height: 12px;
+  margin: 4px 0 8px;
+  border-radius: 999px;
+  background: rgb(20 33 61 / 8%);
+  overflow: hidden;
+}
+
+.gauge-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #4263eb, #3157ff);
+}
+
+.gauge-marker {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: #14213d;
+}
+
+.gauge-marker.takeoff {
+  background: #166534;
+}
+
 .pwa-banner {
   display: grid;
   gap: 10px;

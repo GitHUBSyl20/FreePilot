@@ -1,4 +1,5 @@
 import type { FinanceData } from '@freepilot/finance-core';
+import { migrateFinanceData } from '@freepilot/finance-core';
 
 type ExportEnvelope = {
   app: 'freepilot';
@@ -10,25 +11,15 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
 /**
- * Valide la structure d'un fichier importé : les données pilotent un revenu réel,
+ * Valide puis migre un fichier importé : les données pilotent un revenu réel,
  * mieux vaut refuser un fichier douteux que corrompre l'historique.
+ * Les sauvegardes d'une version antérieure restent acceptées.
  */
 const parseFinanceData = (candidate: unknown): FinanceData => {
   if (!isRecord(candidate)) throw new Error('Fichier illisible : contenu JSON inattendu.');
 
   // On accepte l'enveloppe d'export comme un FinanceData brut.
-  const payload = isRecord(candidate.data) ? candidate.data : candidate;
-
-  if (payload.version !== 1) {
-    throw new Error(`Version de données non supportée (attendu 1, reçu ${String(payload.version)}).`);
-  }
-  if (!isRecord(payload.settings)) throw new Error('Fichier incomplet : réglages manquants.');
-
-  for (const key of ['accounts', 'invoices', 'transactions'] as const) {
-    if (!Array.isArray(payload[key])) throw new Error(`Fichier incomplet : "${key}" manquant ou invalide.`);
-  }
-
-  return payload as unknown as FinanceData;
+  return migrateFinanceData(isRecord(candidate.data) ? candidate.data : candidate);
 };
 
 export const buildExportFileName = (date = new Date()): string =>

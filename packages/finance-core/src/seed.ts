@@ -1,8 +1,14 @@
 import type { FinanceData } from './types';
+import { FINANCE_DATA_VERSION } from './types';
 import { defaultSettings } from './dashboardMock';
 
+/**
+ * Jeu de démonstration volontairement fictif : aucune donnée réelle ne doit
+ * figurer dans le dépôt, qui est public. Les vraies valeurs entrent par la
+ * saisie ou par l'import d'une sauvegarde.
+ */
 export const createInitialFinanceData = (): FinanceData => ({
-  version: 1,
+  version: FINANCE_DATA_VERSION,
   settings: defaultSettings,
   accounts: [
     { id: 'account-pro', name: 'Compte pro', kind: 'professional', openingBalance: 2500 },
@@ -81,5 +87,13 @@ export const createInitialFinanceData = (): FinanceData => ({
       fromAccountId: 'account-pro',
       toAccountId: 'account-personal',
     },
+  ],
+  recurringCharges: [
+    { id: 'charge-001', label: 'Loyer', amount: 700, scope: 'personal', dayOfMonth: 5, active: true },
+    { id: 'charge-002', label: 'Abonnements outils', amount: 60, scope: 'professional', dayOfMonth: 1, active: true },
+  ],
+  areMonths: [
+    { month: '2026-05', fullMonthlyARE: 1416, actualARE: 1012 },
+    { month: '2026-06', fullMonthlyARE: 1416, actualARE: null },
   ],
 });

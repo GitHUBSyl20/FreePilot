@@ -7,6 +7,8 @@ export * from './calculations/are';
 export * from './calculations/netAvailable';
 export * from './calculations/tax';
 export * from './calculations/urssaf';
+export * from './migrate';
 export * from './monthly/cashflowSeries';
+export * from './monthly/financeProjection';
 export * from './monthly/month';
 export * from './monthly/snapshot';

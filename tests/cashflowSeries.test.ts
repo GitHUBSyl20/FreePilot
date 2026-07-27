@@ -21,6 +21,8 @@ const settings: AppSettings = {
   prudentIncomeTaxProvisionRate: 11,
   versementLiberatoireEnabled: false,
   versementLiberatoireRateBNC: 2.2,
+  monthlyRevenueSafetyThreshold: 1000,
+  monthlyRevenueTakeoffThreshold: 1500,
 };
 
 /**
