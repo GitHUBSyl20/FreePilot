@@ -14,16 +14,27 @@ import {
   updateInvoice,
   updateTransaction,
 } from '@freepilot/finance-core';
-import type { ReactNode } from 'react';
+import type { ChangeEvent, ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import { downloadFinanceData, readFinanceDataFile } from './dataTransfer';
 import { webFinanceStore } from './localFinanceStore';
+import { PwaBanners } from './PwaBanners';
 
-type Page = 'dashboard' | 'accounts' | 'invoices' | 'transactions';
+type Page = 'dashboard' | 'accounts' | 'invoices' | 'transactions' | 'data';
 
 const currencyFormatter = new Intl.NumberFormat('fr-FR', {
   style: 'currency',
   currency: 'EUR',
 });
+
+const monthFormatter = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' });
+
+/** '2026-07' -> 'Juillet 2026' */
+const formatMonthLabel = (month: string): string => {
+  const [year, monthNumber] = month.split('-').map(Number);
+  const label = monthFormatter.format(new Date(year, monthNumber - 1, 1));
+  return label.charAt(0).toUpperCase() + label.slice(1);
+};
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -41,6 +52,9 @@ export const App = () => {
   const [transferTo, setTransferTo] = useState('');
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
+  const [dataNotice, setDataNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+
+  const currentMonth = useMemo(() => getCurrentMonth(), []);
 
   useEffect(() => {
     void loadOrSeedFinanceData(webFinanceStore).then((loaded) => {
@@ -50,7 +64,7 @@ export const App = () => {
     });
   }, []);
 
-  const dashboard = useMemo(() => (data ? projectDashboard(data, getCurrentMonth()) : null), [data]);
+  const dashboard = useMemo(() => (data ? projectDashboard(data, currentMonth) : null), [currentMonth, data]);
 
   const saveData = (nextData: FinanceData) => {
     setData(nextData);
@@ -113,6 +127,33 @@ export const App = () => {
     });
   };
 
+  const handleExportData = () => {
+    downloadFinanceData(data);
+    setDataNotice({ tone: 'ok', text: 'Sauvegarde téléchargée.' });
+  };
+
+  const handleImportData = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    // Le champ est réinitialisé pour permettre de réimporter le même fichier.
+    event.target.value = '';
+    if (!file) return;
+
+    try {
+      const imported = await readFinanceDataFile(file);
+      if (!window.confirm('Remplacer toutes les données actuelles par le contenu de ce fichier ?')) return;
+
+      saveData(imported);
+      setTransferFrom(getProfessionalAccount(imported)?.id ?? '');
+      setTransferTo(imported.accounts.find((account) => account.kind === 'personal')?.id ?? '');
+      setDataNotice({
+        tone: 'ok',
+        text: `Import réussi : ${imported.invoices.length} facture(s), ${imported.transactions.length} opération(s).`,
+      });
+    } catch (error) {
+      setDataNotice({ tone: 'error', text: error instanceof Error ? error.message : 'Import impossible.' });
+    }
+  };
+
   const handleEditInvoice = (invoice: EditableInvoice) => {
     setEditingInvoiceId(invoice.id);
     setInvoiceClient(invoice.clientName);
@@ -156,15 +197,14 @@ export const App = () => {
       <header className="top-bar">
         <div>
           <p className="eyebrow">FreePilot</p>
-          <h1>Mai 2026</h1>
+          <h1>{formatMonthLabel(currentMonth)}</h1>
         </div>
         <div className="header-actions">
           <span className="local-badge">Local</span>
-          <button className="danger-button" onClick={handleResetData} type="button">
-            Effacer les données
-          </button>
         </div>
       </header>
+
+      <PwaBanners />
 
       <nav className="tabs" aria-label="Navigation principale">
         {([
@@ -172,6 +212,7 @@ export const App = () => {
           ['accounts', 'Comptes'],
           ['invoices', 'Factures'],
           ['transactions', 'Opérations'],
+          ['data', 'Données'],
         ] as const).map(([id, label]) => (
           <button className={page === id ? 'active' : ''} key={id} onClick={() => setPage(id)} type="button">
             {label}
@@ -234,6 +275,15 @@ export const App = () => {
           onEdit={handleEditTransaction}
           onLabelChange={setExpenseLabel}
           transactions={data.transactions}
+        />
+      ) : null}
+
+      {page === 'data' ? (
+        <DataView
+          notice={dataNotice}
+          onExport={handleExportData}
+          onImport={handleImportData}
+          onReset={handleResetData}
         />
       ) : null}
     </main>
@@ -474,6 +524,48 @@ function TransactionsView({
             )}
           </div>
         ))}
+      </Panel>
+    </section>
+  );
+}
+
+function DataView({
+  notice,
+  onExport,
+  onImport,
+  onReset,
+}: {
+  notice: { tone: 'ok' | 'error'; text: string } | null;
+  onExport: () => void;
+  onImport: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
+  onReset: () => void;
+}) {
+  return (
+    <section className="details-stack single">
+      <Panel title="Sauvegarde">
+        <p className="muted-note">
+          Tes données ne quittent pas cet appareil. Exporte-les régulièrement : si le navigateur efface
+          ses données de site, FreePilot repart de zéro.
+        </p>
+        <button className="primary-button" onClick={onExport} type="button">
+          Exporter mes données
+        </button>
+        <label className="file-button">
+          Importer une sauvegarde
+          <input accept="application/json,.json" onChange={(event) => void onImport(event)} type="file" />
+        </label>
+        {notice ? (
+          <p className={notice.tone === 'error' ? 'notice-error' : 'notice-ok'} role="status">
+            {notice.text}
+          </p>
+        ) : null}
+      </Panel>
+
+      <Panel title="Réinitialisation">
+        <p className="muted-note">Efface tout le contenu local et repart des données de démonstration.</p>
+        <button className="danger-button" onClick={onReset} type="button">
+          Effacer les données
+        </button>
       </Panel>
     </section>
   );

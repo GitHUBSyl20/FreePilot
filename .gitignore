@@ -1,6 +1,18 @@
 node_modules/
 dist/
+dev-dist/
 .expo/
+
+# Réglages Claude Code propres à la machine
+.claude/settings.local.json
+
+# Données personnelles et financières réelles : ne jamais committer
+*.xlsx
+*.xls
+*.csv
+freepilot-export-*.json
+.env
+.env.*
 
 .DS_Store
 *.local

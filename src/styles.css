@@ -282,6 +282,70 @@ select {
   font-size: 0.82rem;
 }
 
+.pwa-banner {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 14px 18px;
+  border: 1px solid rgb(66 99 235 / 22%);
+  border-radius: 20px;
+  background: #eef2ff;
+}
+
+.pwa-banner p {
+  margin: 0;
+  color: #14213d;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+/* L'input natif est masqué : le label sert de bouton. */
+.file-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  color: #4338ca;
+  background: #eef2ff;
+  font-weight: 800;
+  text-align: center;
+  cursor: pointer;
+}
+
+.file-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.file-button:focus-within {
+  outline: 2px solid #4263eb;
+  outline-offset: 2px;
+}
+
+.notice-ok,
+.notice-error {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.notice-ok {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.notice-error {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
 @media (min-width: 760px) {
   .phone-shell {
     padding-top: 48px;
