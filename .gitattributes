@@ -1,0 +1,32 @@
+# Fins de ligne normalisées en LF dans le dépôt et dans la copie de travail,
+# pour éviter les diffs parasites entre Windows, macOS et Linux.
+* text=auto eol=lf
+
+# Scripts Windows : doivent rester en CRLF pour rester exécutables.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Wrapper Gradle
+gradlew text eol=lf
+gradlew.bat text eol=crlf
+
+# Binaires : aucune conversion de fin de ligne.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.zip binary
+*.jar binary
+*.keystore binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
+*.xlsx binary
+*.xls binary
+
+# Fichier généré : signalé comme tel dans les statistiques et les revues.
+package-lock.json linguist-generated=true
