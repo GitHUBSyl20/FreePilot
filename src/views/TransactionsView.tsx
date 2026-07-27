@@ -1,7 +1,7 @@
 import type { Transaction } from '@freepilot/finance-core';
 import { useState } from 'react';
 import { EmptyState, InfoRow, Panel } from '../components/Panel';
-import { formatCurrency, parseAmount } from '../format';
+import { formatCurrency, formatDate, parseAmount } from '../format';
 
 type Props = {
   transactions: Transaction[];
@@ -60,7 +60,7 @@ export function TransactionsView({ onAddExpense, onDelete, onUpdate, transaction
           transactions.map((transaction) => (
             <div className="record-card" key={transaction.id}>
               <InfoRow
-                helper={`${transaction.kind} · ${transaction.date}`}
+                helper={`${transaction.kind} · ${formatDate(transaction.date)}`}
                 label={transaction.label}
                 value={formatCurrency(transaction.amount)}
               />

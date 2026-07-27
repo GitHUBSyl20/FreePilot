@@ -26,6 +26,7 @@ export const createInitialFinanceData = (): FinanceData => ({
       dueDate: '2026-05-15',
       paymentDate: '2026-05-03',
       paymentAccountId: 'account-pro',
+      prospectId: 'prospect-001',
     },
     {
       id: 'invoice-002',
@@ -46,6 +47,7 @@ export const createInitialFinanceData = (): FinanceData => ({
       dueDate: '2026-06-05',
       paymentDate: null,
       paymentAccountId: null,
+      prospectId: 'prospect-002',
     },
   ],
   transactions: [
@@ -95,5 +97,56 @@ export const createInitialFinanceData = (): FinanceData => ({
   areMonths: [
     { month: '2026-05', fullMonthlyARE: 1416, actualARE: 1012 },
     { month: '2026-06', fullMonthlyARE: 1416, actualARE: null },
+  ],
+  prospects: [
+    {
+      id: 'prospect-001',
+      name: 'Client Alpha',
+      company: 'Alpha Conseil',
+      source: 'Réseau professionnel',
+      temperature: 'hot',
+      status: 'signed',
+      nextFollowUpDate: null,
+      notes: 'Mission cadrée en avril, facturée en mai.',
+      createdAt: '2026-04-08',
+    },
+    {
+      id: 'prospect-002',
+      name: 'Client Gamma',
+      company: 'Gamma Studio',
+      source: 'Petit-déjeuner entrepreneurs',
+      temperature: 'hot',
+      status: 'active',
+      nextFollowUpDate: null,
+      notes: 'Devis envoyé, attend la validation de son associé.',
+      createdAt: '2026-05-12',
+    },
+    {
+      id: 'prospect-003',
+      name: 'Client Delta',
+      company: null,
+      source: 'Recommandation',
+      temperature: 'cold',
+      status: 'active',
+      nextFollowUpDate: null,
+      notes: 'Contact transmis, jamais appelé.',
+      createdAt: '2026-06-02',
+    },
+  ],
+  interactions: [
+    {
+      id: 'interaction-001',
+      prospectId: 'prospect-001',
+      date: '2026-04-08',
+      channel: 'meeting',
+      note: 'Premier rendez-vous, besoin confirmé.',
+    },
+    {
+      id: 'interaction-002',
+      prospectId: 'prospect-002',
+      date: '2026-05-20',
+      channel: 'email',
+      note: 'Devis envoyé.',
+    },
   ],
 });

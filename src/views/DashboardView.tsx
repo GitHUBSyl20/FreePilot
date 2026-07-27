@@ -1,6 +1,6 @@
 import type { AppSettings, DashboardProjection } from '@freepilot/finance-core';
 import { EmptyState, InfoRow, Panel } from '../components/Panel';
-import { formatCurrency, formatDays } from '../format';
+import { formatCurrency, formatDate, formatDays, formatMonthLabel } from '../format';
 
 type Props = {
   projection: DashboardProjection;
@@ -65,7 +65,7 @@ export function DashboardView({ projection, settings, onAddExpense, onAddInvoice
         </Panel>
 
         <Panel title="Détail du mois">
-          <InfoRow label="Urssaf provisionnée" helper={`Payable en ${outlook.cashflow.urssafPaymentMonth}`} value={formatCurrency(outlook.cashflow.urssafProvision.value)} />
+          <InfoRow label="Urssaf provisionnée" helper={`Payable en ${formatMonthLabel(outlook.cashflow.urssafPaymentMonth).toLowerCase()}`} value={formatCurrency(outlook.cashflow.urssafProvision.value)} />
           <InfoRow label="Impôt provisionné" helper="11 % du revenu après abattement" value={formatCurrency(outlook.cashflow.incomeTaxProvision.value)} />
           <InfoRow label="Charges fixes pro" value={formatCurrency(outlook.recurringCharges.professional)} />
           <InfoRow label="Charges fixes perso" value={formatCurrency(outlook.recurringCharges.personal)} />
@@ -85,7 +85,7 @@ export function DashboardView({ projection, settings, onAddExpense, onAddInvoice
           ) : (
             projection.recentTransactions.map((transaction) => (
               <InfoRow
-                helper={transaction.date}
+                helper={formatDate(transaction.date)}
                 key={transaction.id}
                 label={transaction.label}
                 value={formatCurrency(transaction.amount)}

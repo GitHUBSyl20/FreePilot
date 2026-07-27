@@ -14,7 +14,7 @@ describe('export des données', () => {
 
     expect(envelope.app).toBe('freepilot');
     expect(envelope.exportedAt).toBe('2026-07-27T10:00:00.000Z');
-    expect(envelope.data.version).toBe(2);
+    expect(envelope.data.version).toBe(3);
   });
 });
 
@@ -43,18 +43,45 @@ describe('import des données', () => {
     await expect(readFinanceDataFile(asFile(JSON.stringify(payload)))).rejects.toThrow(/Version de données/);
   });
 
-  it('migre une sauvegarde v1 dépourvue de charges et d’ARE mensuelle', async () => {
-    const { recurringCharges: _charges, areMonths: _months, ...v2 } = createInitialFinanceData();
-    const legacy = { ...v2, version: 1 };
+  it('migre une sauvegarde v1 dépourvue des collections ajoutées depuis', async () => {
+    const {
+      recurringCharges: _charges,
+      areMonths: _months,
+      prospects: _prospects,
+      interactions: _interactions,
+      ...v1
+    } = createInitialFinanceData();
+    const legacy = { ...v1, version: 1 };
 
     const imported = await readFinanceDataFile(asFile(JSON.stringify(legacy)));
 
-    expect(imported.version).toBe(2);
+    expect(imported.version).toBe(3);
     expect(imported.recurringCharges).toEqual([]);
     expect(imported.areMonths).toEqual([]);
+    expect(imported.prospects).toEqual([]);
+    expect(imported.interactions).toEqual([]);
     // Les factures et opérations d'origine survivent à la migration.
     expect(imported.invoices).toHaveLength(3);
     expect(imported.transactions).toHaveLength(4);
+  });
+
+  it('migre une sauvegarde v2 en conservant charges et ARE mensuelle', async () => {
+    const { prospects: _prospects, interactions: _interactions, ...v2 } = createInitialFinanceData();
+    const legacy = { ...v2, version: 2 };
+
+    const imported = await readFinanceDataFile(asFile(JSON.stringify(legacy)));
+
+    expect(imported.version).toBe(3);
+    expect(imported.recurringCharges).toHaveLength(2);
+    expect(imported.areMonths).toHaveLength(2);
+    expect(imported.prospects).toEqual([]);
+    expect(imported.interactions).toEqual([]);
+  });
+
+  it('détecte une collection CRM manquante même à la version courante', () => {
+    const { prospects: _removed, ...withoutProspects } = createInitialFinanceData();
+
+    expect(needsMigration(withoutProspects)).toBe(true);
   });
 
   it('détecte un réglage manquant même à la version courante', () => {

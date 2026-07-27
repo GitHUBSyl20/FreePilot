@@ -1,22 +1,30 @@
 import type { ChangeEvent } from 'react';
-import type { EditableInvoice, FinanceData, RecurringCharge, Transaction } from '@freepilot/finance-core';
+import type { EditableInvoice, FinanceData, Interaction, Prospect, RecurringCharge, Transaction } from '@freepilot/finance-core';
 import {
   addExpense,
   addInvoice,
+  addProspect,
   addRecurringCharge,
   buildFinanceSeries,
+  buildProspectFollowUps,
   createTransfer,
   deleteAREMonth,
+  deleteInteraction,
   deleteInvoice,
+  deleteProspect,
   deleteRecurringCharge,
   deleteTransaction,
   getCurrentMonth,
   getProfessionalAccount,
   loadOrSeedFinanceData,
+  logInteraction,
   markInvoicePaid,
   projectDashboard,
   resetFinanceData,
+  summarizeCrm,
+  todayISO,
   updateInvoice,
+  updateProspect,
   updateRecurringCharge,
   updateTransaction,
   upsertAREMonth,
@@ -28,7 +36,7 @@ import { webFinanceStore } from './localFinanceStore';
 import { PwaBanners } from './PwaBanners';
 import { AccountsView } from './views/AccountsView';
 import { AREMonthsView } from './views/AREMonthsView';
-import { CrmView } from './views/CrmView';
+import { CrmView } from './views/crm/CrmView';
 import { DashboardView } from './views/DashboardView';
 import { DataView } from './views/DataView';
 import { InvoicesView } from './views/InvoicesView';
@@ -60,6 +68,7 @@ export const App = () => {
   const [dataNotice, setDataNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
 
   const currentMonth = useMemo(() => getCurrentMonth(), []);
+  const currentDay = useMemo(() => todayISO(), []);
 
   useEffect(() => {
     void loadOrSeedFinanceData(webFinanceStore).then(setData);
@@ -67,8 +76,10 @@ export const App = () => {
 
   const projection = useMemo(() => (data ? projectDashboard(data, currentMonth) : null), [currentMonth, data]);
   const series = useMemo(() => (data ? buildFinanceSeries(data, currentMonth) : []), [currentMonth, data]);
+  const followUps = useMemo(() => (data ? buildProspectFollowUps(data, currentDay) : []), [currentDay, data]);
+  const crmSummary = useMemo(() => (data ? summarizeCrm(data, currentDay) : null), [currentDay, data]);
 
-  if (!data || !projection) {
+  if (!data || !projection || !crmSummary) {
     return (
       <main className="phone-shell">
         <p className="loading">Chargement de FreePilot...</p>
@@ -133,6 +144,16 @@ export const App = () => {
     saveData(deleteRecurringCharge(data, charge.id));
   };
 
+  const handleDeleteProspect = (prospect: Prospect) => {
+    if (!window.confirm(`Supprimer ${prospect.name} et tout son historique de contacts ?`)) return;
+    saveData(deleteProspect(data, prospect.id));
+  };
+
+  const handleDeleteInteraction = (interaction: Interaction) => {
+    if (!window.confirm('Supprimer ce contact de l’historique ?')) return;
+    saveData(deleteInteraction(data, interaction.id));
+  };
+
   return (
     <main className="phone-shell">
       <header className="top-bar">
@@ -151,6 +172,7 @@ export const App = () => {
         {sections.map(([id, label]) => (
           <button className={section === id ? 'active' : ''} key={id} onClick={() => setSection(id)} type="button">
             {label}
+            {id === 'crm' && crmSummary.overdue > 0 ? <span className="tab-count">{crmSummary.overdue}</span> : null}
           </button>
         ))}
       </nav>
@@ -196,6 +218,7 @@ export const App = () => {
                 saveData(markInvoicePaid(data, invoice.id, { paymentDate: today(), accountId: professionalAccountId }))
               }
               onUpdate={(invoiceId, input) => saveData(updateInvoice(data, invoiceId, input))}
+              prospects={data.prospects}
             />
           ) : null}
 
@@ -232,7 +255,19 @@ export const App = () => {
         </>
       ) : null}
 
-      {section === 'crm' ? <CrmView /> : null}
+      {section === 'crm' ? (
+        <CrmView
+          followUps={followUps}
+          interactions={data.interactions}
+          onAddProspect={(input) => saveData(addProspect(data, input))}
+          onDeleteInteraction={handleDeleteInteraction}
+          onDeleteProspect={handleDeleteProspect}
+          onLogInteraction={(input) => saveData(logInteraction(data, input))}
+          onUpdateProspect={(prospectId, input) => saveData(updateProspect(data, prospectId, input))}
+          summary={crmSummary}
+          today={currentDay}
+        />
+      ) : null}
 
       {section === 'settings' ? (
         <DataView

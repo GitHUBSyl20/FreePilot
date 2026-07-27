@@ -391,6 +391,129 @@ select {
   background: #fee2e2;
 }
 
+/* --- CRM --- */
+
+textarea {
+  width: 100%;
+  border: 1px solid #dbe3ef;
+  border-radius: 16px;
+  padding: 12px 14px;
+  color: #14213d;
+  background: #f8fafc;
+  font: inherit;
+  resize: vertical;
+}
+
+/* Une ligne de prospect entière est cliquable : la cible reste large au pouce. */
+.row-button {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid rgb(20 33 61 / 8%);
+  background: none;
+  text-align: left;
+}
+
+.row-button:last-child {
+  border-bottom: 0;
+}
+
+.row-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #14213d;
+  font-size: 1rem;
+}
+
+.row-detail {
+  color: #667085;
+  font-size: 0.82rem;
+}
+
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.badge {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.badge.hot {
+  color: #9a3412;
+  background: #ffedd5;
+}
+
+.badge.warm {
+  color: #854d0e;
+  background: #fef3c7;
+}
+
+.badge.cold {
+  color: #1e40af;
+  background: #dbeafe;
+}
+
+.badge.overdue {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.badge.today {
+  color: #92400e;
+  background: #fde68a;
+}
+
+.badge.upcoming,
+.badge.status-active {
+  color: #3730a3;
+  background: #e0e7ff;
+}
+
+.badge.status-signed {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.badge.status-lost {
+  color: #475467;
+  background: #e5e7eb;
+}
+
+/* Compteur de relances en retard, accolé au libellé de l'onglet. */
+.tab-count {
+  display: inline-block;
+  min-width: 20px;
+  margin-left: 6px;
+  border-radius: 999px;
+  padding: 1px 6px;
+  color: #ffffff;
+  background: #dc2626;
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.balance-card .prospect-name {
+  font-size: clamp(1.8rem, 8vw, 2.4rem);
+  letter-spacing: -0.04em;
+}
+
+.balance-card .badge-row {
+  margin-bottom: 14px;
+}
+
 @media (min-width: 760px) {
   .phone-shell {
     padding-top: 48px;

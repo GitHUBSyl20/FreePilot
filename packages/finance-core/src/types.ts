@@ -21,6 +21,14 @@ export type AppSettings = {
   monthlyRevenueSafetyThreshold: number;
   /** CA mensuel visé pour ne plus dépendre de l'ARE. */
   monthlyRevenueTakeoffThreshold: number;
+  /**
+   * Délais au-delà desquels un prospect sans relance planifiée remonte comme
+   * à relancer, par température. Un contact chaud se refroidit vite, un contact
+   * froid n'a pas besoin d'être sollicité toutes les semaines.
+   */
+  hotProspectFollowUpDays: number;
+  warmProspectFollowUpDays: number;
+  coldProspectFollowUpDays: number;
 };
 
 export type NetAvailableInput = {
@@ -97,6 +105,8 @@ export type EditableInvoice = InvoiceRecord & {
   issueDate: string;
   dueDate: string | null;
   paymentAccountId: string | null;
+  /** Prospect du CRM à l'origine de la facture, quand le lien est fait. */
+  prospectId?: string | null;
 };
 
 export type TransactionKind = 'income' | 'expense' | 'transfer' | 'provision';
@@ -141,7 +151,45 @@ export type MonthlyAREEntry = {
   actualARE: number | null;
 };
 
-export const FINANCE_DATA_VERSION = 2;
+/**
+ * Température du prospect, reprise du suivi de prospection : elle dit à quelle
+ * fréquence il faut revenir vers lui, pas où il en est du cycle de vente.
+ */
+export type ProspectTemperature = 'hot' | 'warm' | 'cold';
+
+/** Issue de la relation : tant qu'elle est ouverte, le prospect est relancé. */
+export type ProspectStatus = 'active' | 'signed' | 'lost';
+
+/** Canal par lequel le contact a eu lieu. */
+export type InteractionChannel = 'email' | 'phone' | 'linkedin' | 'whatsapp' | 'meeting' | 'event' | 'other';
+
+export type Prospect = {
+  id: string;
+  name: string;
+  company: string | null;
+  /** D'où vient le contact : réseau, événement, prospection directe. */
+  source: string | null;
+  temperature: ProspectTemperature;
+  status: ProspectStatus;
+  /**
+   * Relance décidée à la main. Quand elle est absente, le délai lié à la
+   * température prend le relais : aucun prospect ne tombe dans l'oubli.
+   */
+  nextFollowUpDate: string | null;
+  notes: string;
+  createdAt: string;
+};
+
+/** Un contact réellement passé, à conserver sans limite de nombre. */
+export type Interaction = {
+  id: string;
+  prospectId: string;
+  date: string;
+  channel: InteractionChannel;
+  note: string;
+};
+
+export const FINANCE_DATA_VERSION = 3;
 
 export type FinanceData = {
   version: typeof FINANCE_DATA_VERSION;
@@ -151,6 +199,8 @@ export type FinanceData = {
   transactions: Transaction[];
   recurringCharges: RecurringCharge[];
   areMonths: MonthlyAREEntry[];
+  prospects: Prospect[];
+  interactions: Interaction[];
 };
 
 export type AccountBalance = Account & {
@@ -198,6 +248,47 @@ export type DashboardProjection = {
   outlook: MonthlyOutlook;
   accountBalances: AccountBalance[];
   recentTransactions: Transaction[];
+};
+
+/** Degré d'urgence d'une relance, une fois la date d'échéance connue. */
+export type FollowUpUrgency = 'overdue' | 'today' | 'upcoming';
+
+/** CA rattaché à un prospect, encaissé et encore attendu. */
+export type ProspectRevenue = {
+  collected: number;
+  pending: number;
+};
+
+/** Un prospect vu sous l'angle de la relance : quand, et depuis combien de temps. */
+export type ProspectFollowUp = {
+  prospect: Prospect;
+  lastInteraction: Interaction | null;
+  interactionCount: number;
+  /** Jours écoulés depuis le dernier contact, null si aucun contact enregistré. */
+  daysSinceLastContact: number | null;
+  /** Échéance retenue : la date planifiée, sinon celle déduite de la température. */
+  dueDate: string | null;
+  /** Vrai quand l'échéance vient du délai automatique et non d'une saisie. */
+  inferred: boolean;
+  urgency: FollowUpUrgency | null;
+  /** Négatif quand l'échéance est passée. */
+  daysUntilDue: number | null;
+  revenue: ProspectRevenue;
+};
+
+/** Vue d'ensemble du portefeuille, pour l'accueil du CRM. */
+export type CrmSummary = {
+  total: number;
+  active: number;
+  signed: number;
+  lost: number;
+  byTemperature: Record<ProspectTemperature, number>;
+  overdue: number;
+  dueToday: number;
+  /** Prospects ouverts sans aucun contact enregistré. */
+  neverContacted: number;
+  signedCollectedRevenue: number;
+  pendingRevenue: number;
 };
 
 export type FinanceStore = {

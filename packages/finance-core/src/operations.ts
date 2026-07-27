@@ -4,10 +4,16 @@ import type {
   DashboardProjection,
   EditableInvoice,
   FinanceData,
+  Interaction,
+  InteractionChannel,
   MonthlyAREEntry,
+  Prospect,
+  ProspectStatus,
+  ProspectTemperature,
   RecurringCharge,
   Transaction,
 } from './types';
+import { todayISO } from './crm/day';
 import { projectRemainingAREDays } from './monthly/cashflowSeries';
 import { buildFinanceSeries, projectMonthlyOutlook } from './monthly/financeProjection';
 
@@ -15,7 +21,8 @@ const createId = (prefix: string): string => `${prefix}-${Date.now()}-${Math.ran
 
 const sanitizeAmount = (amount: number): number => Math.max(0, amount);
 
-export const getCurrentMonth = (date = new Date()): string => date.toISOString().slice(0, 7);
+/** Mois courant dans le fuseau local, et non en UTC : voir `todayISO`. */
+export const getCurrentMonth = (date = new Date()): string => todayISO(date).slice(0, 7);
 
 export const calculateAccountBalances = (data: FinanceData): AccountBalance[] =>
   data.accounts.map((account) => {
@@ -68,7 +75,13 @@ export const projectDashboard = (data: FinanceData, month: string = getCurrentMo
 
 export const addInvoice = (
   data: FinanceData,
-  input: { clientName: string; totalTTC: number; issueDate: string; dueDate?: string | null },
+  input: {
+    clientName: string;
+    totalTTC: number;
+    issueDate: string;
+    dueDate?: string | null;
+    prospectId?: string | null;
+  },
 ): FinanceData => {
   const invoice: EditableInvoice = {
     id: createId('invoice'),
@@ -79,6 +92,7 @@ export const addInvoice = (
     dueDate: input.dueDate ?? null,
     paymentDate: null,
     paymentAccountId: null,
+    prospectId: input.prospectId ?? null,
   };
 
   return { ...data, invoices: [invoice, ...data.invoices] };
@@ -87,7 +101,12 @@ export const addInvoice = (
 export const updateInvoice = (
   data: FinanceData,
   invoiceId: string,
-  input: Partial<Pick<EditableInvoice, 'clientName' | 'dueDate' | 'issueDate' | 'paymentAccountId' | 'paymentDate' | 'status' | 'totalTTC'>>,
+  input: Partial<
+    Pick<
+      EditableInvoice,
+      'clientName' | 'dueDate' | 'issueDate' | 'paymentAccountId' | 'paymentDate' | 'prospectId' | 'status' | 'totalTTC'
+    >
+  >,
 ): FinanceData => {
   const currentInvoice = data.invoices.find((invoice) => invoice.id === invoiceId);
   if (!currentInvoice) return data;
@@ -261,6 +280,111 @@ export const upsertAREMonth = (
 export const deleteAREMonth = (data: FinanceData, month: string): FinanceData => ({
   ...data,
   areMonths: data.areMonths.filter((entry) => entry.month !== month),
+});
+
+export const addProspect = (
+  data: FinanceData,
+  input: {
+    name: string;
+    company?: string | null;
+    source?: string | null;
+    temperature: ProspectTemperature;
+    nextFollowUpDate?: string | null;
+    notes?: string;
+    createdAt?: string;
+  },
+): FinanceData => {
+  const prospect: Prospect = {
+    id: createId('prospect'),
+    name: input.name.trim() || 'Contact sans nom',
+    company: input.company?.trim() || null,
+    source: input.source?.trim() || null,
+    temperature: input.temperature,
+    status: 'active',
+    nextFollowUpDate: input.nextFollowUpDate ?? null,
+    notes: input.notes?.trim() ?? '',
+    createdAt: input.createdAt ?? todayISO(),
+  };
+
+  return { ...data, prospects: [prospect, ...data.prospects] };
+};
+
+export const updateProspect = (
+  data: FinanceData,
+  prospectId: string,
+  input: Partial<
+    Pick<Prospect, 'company' | 'name' | 'nextFollowUpDate' | 'notes' | 'source' | 'status' | 'temperature'>
+  >,
+): FinanceData => ({
+  ...data,
+  prospects: data.prospects.map((prospect) => {
+    if (prospect.id !== prospectId) return prospect;
+
+    return {
+      ...prospect,
+      ...input,
+      name: input.name?.trim() || prospect.name,
+      // Un champ vidé volontairement doit pouvoir redevenir nul.
+      company: input.company === undefined ? prospect.company : input.company?.trim() || null,
+      source: input.source === undefined ? prospect.source : input.source?.trim() || null,
+    };
+  }),
+});
+
+/**
+ * Supprime un prospect ainsi que son historique. Les factures déjà émises,
+ * elles, restent : elles portent du chiffre d'affaires réel et sont seulement
+ * détachées du prospect.
+ */
+export const deleteProspect = (data: FinanceData, prospectId: string): FinanceData => ({
+  ...data,
+  prospects: data.prospects.filter((prospect) => prospect.id !== prospectId),
+  interactions: data.interactions.filter((interaction) => interaction.prospectId !== prospectId),
+  invoices: data.invoices.map((invoice) => (invoice.prospectId === prospectId ? { ...invoice, prospectId: null } : invoice)),
+});
+
+/**
+ * Enregistre un contact. La relance suivante est repositionnée dans la foulée :
+ * c'est le moment où l'on sait quand revenir, et le seul où on y pense.
+ */
+export const logInteraction = (
+  data: FinanceData,
+  input: {
+    prospectId: string;
+    date: string;
+    channel: InteractionChannel;
+    note?: string;
+    nextFollowUpDate?: string | null;
+    temperature?: ProspectTemperature;
+    status?: ProspectStatus;
+  },
+): FinanceData => {
+  const prospect = data.prospects.find((item) => item.id === input.prospectId);
+  if (!prospect) return data;
+
+  const interaction: Interaction = {
+    id: createId('interaction'),
+    prospectId: input.prospectId,
+    date: input.date,
+    channel: input.channel,
+    note: input.note?.trim() ?? '',
+  };
+
+  const withInteraction = { ...data, interactions: [interaction, ...data.interactions] };
+  const prospectChanges = {
+    ...(input.nextFollowUpDate === undefined ? {} : { nextFollowUpDate: input.nextFollowUpDate }),
+    ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
+    ...(input.status === undefined ? {} : { status: input.status }),
+  };
+
+  return Object.keys(prospectChanges).length === 0
+    ? withInteraction
+    : updateProspect(withInteraction, input.prospectId, prospectChanges);
+};
+
+export const deleteInteraction = (data: FinanceData, interactionId: string): FinanceData => ({
+  ...data,
+  interactions: data.interactions.filter((interaction) => interaction.id !== interactionId),
 });
 
 export const createTransfer = (

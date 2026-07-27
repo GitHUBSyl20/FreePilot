@@ -7,23 +7,33 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const asArray = <T>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
 
+/** Collections indispensables : leur absence signale un fichier tronqué. */
+const requiredCollections = ['accounts', 'invoices', 'transactions'] as const;
+
+/**
+ * Collections apparues après la v1 : une sauvegarde plus ancienne n'en a pas,
+ * on les initialise à vide plutôt que d'inventer des valeurs.
+ */
+const optionalCollections = ['recurringCharges', 'areMonths', 'prospects', 'interactions'] as const;
+
 /**
  * Amène un jeu de données à la version courante.
  *
- * La v1 ne connaissait ni les charges récurrentes ni l'ARE mensuelle : on les
- * initialise à vide plutôt que d'inventer des valeurs, pour ne jamais afficher
- * un chiffre que l'utilisateur n'a pas saisi.
+ * v1 → v2 : charges récurrentes et ARE mensuelle.
+ * v2 → v3 : prospects et historique des contacts.
  */
 export const migrateFinanceData = (candidate: unknown): FinanceData => {
   if (!isRecord(candidate)) throw new Error('Données illisibles.');
 
   const version = candidate.version;
-  if (version !== 1 && version !== FINANCE_DATA_VERSION) {
-    throw new Error(`Version de données non supportée (attendu 1 ou ${FINANCE_DATA_VERSION}, reçu ${String(version)}).`);
+  if (typeof version !== 'number' || !Number.isInteger(version) || version < 1 || version > FINANCE_DATA_VERSION) {
+    throw new Error(
+      `Version de données non supportée (attendu 1 à ${FINANCE_DATA_VERSION}, reçu ${String(version)}).`,
+    );
   }
   if (!isRecord(candidate.settings)) throw new Error('Fichier incomplet : réglages manquants.');
 
-  for (const key of ['accounts', 'invoices', 'transactions'] as const) {
+  for (const key of requiredCollections) {
     if (!Array.isArray(candidate[key])) throw new Error(`Fichier incomplet : "${key}" manquant ou invalide.`);
   }
 
@@ -35,6 +45,8 @@ export const migrateFinanceData = (candidate: unknown): FinanceData => {
     settings: { ...defaultSettings, ...(candidate.settings as Partial<AppSettings>) },
     recurringCharges: asArray(candidate.recurringCharges),
     areMonths: asArray(candidate.areMonths),
+    prospects: asArray(candidate.prospects),
+    interactions: asArray(candidate.interactions),
   };
 };
 
@@ -49,7 +61,7 @@ export const migrateFinanceData = (candidate: unknown): FinanceData => {
 export const needsMigration = (candidate: unknown): boolean => {
   if (!isRecord(candidate)) return false;
   if (candidate.version !== FINANCE_DATA_VERSION) return true;
-  if (!Array.isArray(candidate.recurringCharges) || !Array.isArray(candidate.areMonths)) return true;
+  if (optionalCollections.some((key) => !Array.isArray(candidate[key]))) return true;
 
   const settings = candidate.settings;
   if (!isRecord(settings)) return true;
