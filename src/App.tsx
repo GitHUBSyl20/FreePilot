@@ -3,6 +3,7 @@ import type { EditableInvoice, FinanceData, Interaction, Prospect, RecurringChar
 import {
   addExpense,
   addInvoice,
+  addOtherIncome,
   addProspect,
   addRecurringCharge,
   buildFinanceSeries,
@@ -217,6 +218,7 @@ export const App = () => {
               onMarkPaid={(invoice) =>
                 saveData(markInvoicePaid(data, invoice.id, { paymentDate: today(), accountId: professionalAccountId }))
               }
+              onMarkSent={(invoice) => saveData(updateInvoice(data, invoice.id, { status: 'sent' }))}
               onUpdate={(invoiceId, input) => saveData(updateInvoice(data, invoiceId, input))}
               prospects={data.prospects}
             />
@@ -226,6 +228,9 @@ export const App = () => {
             <TransactionsView
               onAddExpense={(input) =>
                 saveData(addExpense(data, { ...input, date: today(), accountId: professionalAccountId }))
+              }
+              onAddOtherIncome={(input) =>
+                saveData(addOtherIncome(data, { ...input, date: today(), accountId: professionalAccountId }))
               }
               onDelete={handleDeleteTransaction}
               onUpdate={(transactionId, input) => saveData(updateTransaction(data, transactionId, input))}

@@ -109,7 +109,13 @@ export type EditableInvoice = InvoiceRecord & {
   prospectId?: string | null;
 };
 
-export type TransactionKind = 'income' | 'expense' | 'transfer' | 'provision';
+/**
+ * `income` est réservé aux encaissements de factures : c'est le chiffre
+ * d'affaires. `otherIncome` couvre l'argent qui entre sans être du CA
+ * (remboursement d'impôts, aide, remboursement de frais) : il ne génère ni
+ * Urssaf, ni impôt, ni déduction ARE, mais il compte dans le reste à vivre.
+ */
+export type TransactionKind = 'income' | 'otherIncome' | 'expense' | 'transfer' | 'provision';
 
 export type Transaction = {
   id: string;
@@ -220,6 +226,8 @@ export type MonthlyOutlook = {
   recurringCharges: RecurringChargeTotals;
   /** Dépenses ponctuelles saisies sur le mois, hors charges fixes. */
   variableExpenses: number;
+  /** Encaissements du mois qui ne sont pas du chiffre d'affaires. */
+  otherIncome: number;
   /** Ce qui reste une fois l'impôt provisionné et toutes les charges payées. */
   resteAVivre: CalculationDetail;
   /** CA à partir duquel l'ARE du mois suivant tombe à zéro. */

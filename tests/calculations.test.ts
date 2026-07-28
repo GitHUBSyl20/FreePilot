@@ -3,6 +3,7 @@ import {
   AppSettings,
   addExpense,
   addInvoice,
+  addOtherIncome,
   calculateARECutoff,
   calculateAccountBalances,
   calculateCollectedRevenueFromInvoices,
@@ -142,6 +143,29 @@ describe('calculation rules', () => {
 
     expect(projectDashboard(withExpense, '2026-05').kpis.resteAVivre).toBe(before - 100);
     expect(calculateAccountBalances(withExpense).find((account) => account.id === 'account-pro')?.balance).toBe(3700);
+  });
+
+  it('other income lifts reste à vivre without touching revenue or ARE', () => {
+    const data = createInitialFinanceData();
+    const before = projectDashboard(data, '2026-05').kpis;
+    const withRefund = addOtherIncome(data, {
+      label: 'Remboursement impôts',
+      amount: 946,
+      date: '2026-05-20',
+      accountId: 'account-personal',
+    });
+    const after = projectDashboard(withRefund, '2026-05').kpis;
+
+    // Comparaison au centime : la somme flottante brute vaut 2186,3900000000003.
+    expect(after.resteAVivre).toBeCloseTo(before.resteAVivre + 946, 2);
+    // Ni le CA, ni l'Urssaf, ni l'ARE du mois suivant ne bougent.
+    expect(after.caEncaisse).toBe(before.caEncaisse);
+    expect(after.areEstimeeM1).toBe(before.areEstimeeM1);
+    expect(after.netFinal).toBe(before.netFinal);
+    // 800 d'ouverture + 300 de virement reçu + 946.
+    expect(
+      calculateAccountBalances(withRefund).find((account) => account.id === 'account-personal')?.balance,
+    ).toBe(2046);
   });
 
   it('updates a paid invoice and keeps its payment transaction in sync', () => {

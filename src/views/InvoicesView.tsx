@@ -13,9 +13,32 @@ type Props = {
   onUpdate: (invoiceId: string, input: InvoiceInput) => void;
   onDelete: (invoice: EditableInvoice) => void;
   onMarkPaid: (invoice: EditableInvoice) => void;
+  onMarkSent: (invoice: EditableInvoice) => void;
 };
 
-export function InvoicesView({ canMarkPaid, invoices, onCreate, onDelete, onMarkPaid, onUpdate, prospects }: Props) {
+/**
+ * État de la facture en clair. Un brouillon sert aux échéances connues d'un
+ * contrat : elles ne comptent ni dans le CA ni dans les factures à encaisser
+ * tant que la facture n'est pas réellement émise.
+ */
+export const statusSummary = (invoice: EditableInvoice): string => {
+  if (invoice.status === 'paid' && invoice.paymentDate) return `Payée le ${formatDate(invoice.paymentDate)}`;
+  if (invoice.status === 'draft') return `Brouillon · à facturer le ${formatDate(invoice.issueDate)}`;
+  if (invoice.status === 'overdue') return `En retard · émise le ${formatDate(invoice.issueDate)}`;
+  if (invoice.status === 'cancelled') return 'Annulée';
+  return `Émise le ${formatDate(invoice.issueDate)}`;
+};
+
+export function InvoicesView({
+  canMarkPaid,
+  invoices,
+  onCreate,
+  onDelete,
+  onMarkPaid,
+  onMarkSent,
+  onUpdate,
+  prospects,
+}: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [clientName, setClientName] = useState('');
   const [amount, setAmount] = useState('');
@@ -90,22 +113,22 @@ export function InvoicesView({ canMarkPaid, invoices, onCreate, onDelete, onMark
           invoices.map((invoice) => (
             <div className="record-card" key={invoice.id}>
               <InfoRow
-                helper={[
-                  invoice.status === 'paid' && invoice.paymentDate
-                    ? `Payée le ${formatDate(invoice.paymentDate)}`
-                    : `Émise le ${formatDate(invoice.issueDate)}`,
-                  prospectName(invoice.prospectId),
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
+                helper={[statusSummary(invoice), prospectName(invoice.prospectId)].filter(Boolean).join(' · ')}
                 label={invoice.clientName}
                 value={formatCurrency(invoice.totalTTC)}
               />
-              {invoice.status !== 'paid' && canMarkPaid ? (
-                <button className="secondary-button" onClick={() => onMarkPaid(invoice)} type="button">
-                  Marquer payée
-                </button>
-              ) : null}
+              <div className="button-row">
+                {invoice.status === 'draft' ? (
+                  <button className="secondary-button" onClick={() => onMarkSent(invoice)} type="button">
+                    Marquer émise
+                  </button>
+                ) : null}
+                {invoice.status !== 'paid' && canMarkPaid ? (
+                  <button className="secondary-button" onClick={() => onMarkPaid(invoice)} type="button">
+                    Marquer payée
+                  </button>
+                ) : null}
+              </div>
               <div className="button-row">
                 <button className="secondary-button" onClick={() => edit(invoice)} type="button">Modifier</button>
                 <button

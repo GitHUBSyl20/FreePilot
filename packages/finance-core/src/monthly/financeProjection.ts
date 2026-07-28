@@ -41,6 +41,20 @@ export const variableExpensesForMonth = (data: FinanceData, month: string): numb
   );
 
 /**
+ * Encaissements du mois qui ne sont pas du chiffre d'affaires.
+ *
+ * Ils restent volontairement hors de `collectedRevenue` : les faire entrer
+ * dans le CA déclencherait de l'Urssaf, de l'impôt et une déduction d'ARE sur
+ * de l'argent qui n'en génère aucun.
+ */
+export const otherIncomeForMonth = (data: FinanceData, month: string): number =>
+  roundCurrency(
+    data.transactions
+      .filter((transaction) => transaction.kind === 'otherIncome' && transaction.date.startsWith(month))
+      .reduce((total, transaction) => total + safeNumber(transaction.amount), 0),
+  );
+
+/**
  * Mois couverts par les données, de façon continue.
  *
  * La continuité est indispensable : la déduction se transmet de mois en mois,
@@ -96,9 +110,14 @@ export const projectMonthlyOutlook = (data: FinanceData, month: string): Monthly
 
   const recurringCharges = sumRecurringCharges(data.recurringCharges);
   const variableExpenses = variableExpensesForMonth(data, month);
+  const otherIncome = otherIncomeForMonth(data, month);
 
   const resteAVivreValue = roundCurrency(
-    cashflow.netFinal.value - cashflow.incomeTaxProvision.value - recurringCharges.total - variableExpenses,
+    cashflow.netFinal.value -
+      cashflow.incomeTaxProvision.value -
+      recurringCharges.total -
+      variableExpenses +
+      otherIncome,
   );
 
   const areEntry = data.areMonths.find((entry) => entry.month === addMonths(month, 1));
@@ -108,10 +127,17 @@ export const projectMonthlyOutlook = (data: FinanceData, month: string): Monthly
     cashflow,
     recurringCharges,
     variableExpenses,
+    otherIncome,
     resteAVivre: {
       value: resteAVivreValue,
-      formula: `${cashflow.netFinal.value} - ${cashflow.incomeTaxProvision.value} - ${recurringCharges.total} - ${variableExpenses}`,
-      assumptions: ['Trésorerie du mois', 'Provision impôt', 'Charges fixes', 'Dépenses ponctuelles'],
+      formula: `${cashflow.netFinal.value} - ${cashflow.incomeTaxProvision.value} - ${recurringCharges.total} - ${variableExpenses} + ${otherIncome}`,
+      assumptions: [
+        'Trésorerie du mois',
+        'Provision impôt',
+        'Charges fixes',
+        'Dépenses ponctuelles',
+        'Encaissements hors CA',
+      ],
       warnings: resteAVivreValue < 0 ? ['Le mois ne couvre pas les charges.'] : [],
     },
     areCutoff: calculateARECutoff(data.settings, areEntry ? areEntry.fullMonthlyARE : undefined),

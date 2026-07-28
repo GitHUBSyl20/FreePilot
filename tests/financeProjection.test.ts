@@ -105,6 +105,29 @@ describe('projection mensuelle', () => {
     expect(outlook.variableExpenses).toBe(50);
   });
 
+  it('ajoute les encaissements hors CA au reste à vivre sans toucher au CA', () => {
+    const data = scenario();
+    data.transactions.push({
+      id: 'tx-2',
+      kind: 'otherIncome',
+      label: 'Remboursement impôts',
+      amount: 946,
+      date: '2026-06-20',
+      fromAccountId: null,
+      toAccountId: 'pro',
+    });
+
+    const withRefund = projectMonthlyOutlook(data, '2026-06');
+
+    expect(withRefund.otherIncome).toBe(946);
+    // Le CA, et donc l'Urssaf, l'impôt et la déduction d'ARE, restent inchangés.
+    expect(withRefund.cashflow.collectedRevenue).toBe(800);
+    expect(withRefund.cashflow.urssafProvision.value).toBe(outlook.cashflow.urssafProvision.value);
+    expect(withRefund.nextMonthARE).toBe(outlook.nextMonthARE);
+    // 285,52 + 946
+    expect(withRefund.resteAVivre.value).toBe(1231.52);
+  });
+
   it('projette l’ARE du mois suivant à partir du CA de ce mois', () => {
     // 1416 − (800 × 46,2 %)
     expect(outlook.nextMonthARE).toBe(1046.4);
@@ -136,6 +159,25 @@ describe('dashboard', () => {
     expect(projection.kpis.netFinal).toBe(1193.6);
     expect(projection.kpis.chargesFixes).toBe(800);
     expect(projection.kpis.resteAVivre).toBe(285.52);
+  });
+
+  it('laisse les factures en brouillon hors du CA et des factures à encaisser', () => {
+    const data = scenario();
+    // Une échéance de contrat connue mais pas encore facturée.
+    data.invoices.push({
+      id: 'inv-brouillon',
+      clientName: 'Contrat récurrent',
+      status: 'draft',
+      totalTTC: 400,
+      issueDate: '2026-09-01',
+      dueDate: null,
+      paymentDate: null,
+      paymentAccountId: null,
+    });
+
+    const withDraft = projectDashboard(data, '2026-06').kpis;
+    expect(withDraft.caEncaisse).toBe(projection.kpis.caEncaisse);
+    expect(withDraft.facturesImpayees).toBe(projection.kpis.facturesImpayees);
   });
 
   it('ne décompte les jours de droits que jusqu’au mois affiché', () => {

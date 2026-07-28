@@ -200,6 +200,31 @@ export const addExpense = (
   return { ...data, transactions: [transaction, ...data.transactions] };
 };
 
+/**
+ * Encaissement qui n'est pas du chiffre d'affaires : remboursement d'impôts,
+ * aide, remboursement de frais. Il alimente le compte et le reste à vivre sans
+ * déclencher d'Urssaf, d'impôt ni de déduction d'ARE.
+ */
+export const addOtherIncome = (
+  data: FinanceData,
+  input: { label: string; amount: number; date: string; accountId?: string },
+): FinanceData => {
+  const toAccountId = input.accountId ?? getProfessionalAccount(data)?.id ?? null;
+  if (!toAccountId) return data;
+
+  const transaction: Transaction = {
+    id: createId('transaction-other-income'),
+    kind: 'otherIncome',
+    label: input.label.trim() || 'Encaissement hors CA',
+    amount: sanitizeAmount(input.amount),
+    date: input.date,
+    fromAccountId: null,
+    toAccountId,
+  };
+
+  return { ...data, transactions: [transaction, ...data.transactions] };
+};
+
 export const updateTransaction = (
   data: FinanceData,
   transactionId: string,

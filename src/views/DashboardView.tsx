@@ -70,6 +70,13 @@ export function DashboardView({ projection, settings, onAddExpense, onAddInvoice
           <InfoRow label="Charges fixes pro" value={formatCurrency(outlook.recurringCharges.professional)} />
           <InfoRow label="Charges fixes perso" value={formatCurrency(outlook.recurringCharges.personal)} />
           <InfoRow label="Dépenses ponctuelles" value={formatCurrency(outlook.variableExpenses)} />
+          {outlook.otherIncome > 0 ? (
+            <InfoRow
+              label="Encaissements hors CA"
+              helper="Ni Urssaf, ni impôt, ni déduction d’ARE"
+              value={formatCurrency(outlook.otherIncome)}
+            />
+          ) : null}
           <InfoRow label="Jours ARE consommés" helper="Sur l’ARE réellement versée" value={formatDays(outlook.cashflow.areDaysConsumed)} />
         </Panel>
 
