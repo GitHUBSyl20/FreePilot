@@ -45,11 +45,6 @@ export function RecurringChargesView({ charges, totals, onAdd, onDelete, onToggl
         <InfoRow label="Charges pro" value={formatCurrency(totals.professional)} />
         <InfoRow label="Charges perso" value={formatCurrency(totals.personal)} />
         <InfoRow label="Total" value={formatCurrency(totals.total)} />
-        <p className="muted-note">
-          En micro-BNC ces charges ne réduisent ni l’Urssaf ni l’impôt : l’abattement forfaitaire les remplace.
-          Elles pèsent uniquement sur la trésorerie. Ne les saisis pas aussi en dépense ponctuelle, elles
-          seraient comptées deux fois.
-        </p>
       </Panel>
 
       <Panel title="Nouvelle charge fixe">
@@ -83,22 +78,35 @@ export function RecurringChargesView({ charges, totals, onAdd, onDelete, onToggl
           [...charges]
             .sort((left, right) => right.amount - left.amount)
             .map((charge) => (
-              <div className="record-card" key={charge.id}>
-                <InfoRow
-                  helper={[scopeLabels[charge.scope], charge.dayOfMonth ? `le ${charge.dayOfMonth}` : null, charge.active ? null : 'suspendue']
-                    .filter(Boolean)
-                    .join(' · ')}
-                  label={charge.label}
-                  value={formatCurrency(charge.amount)}
-                />
-                <div className="button-row">
-                  <button className="secondary-button" onClick={() => onToggle(charge)} type="button">
-                    {charge.active ? 'Suspendre' : 'Réactiver'}
+              <div className="charge-row" key={charge.id}>
+                <span className="charge-label">
+                  <strong>{charge.label}</strong>{' '}
+                  <span>
+                    {[scopeLabels[charge.scope], charge.dayOfMonth ? `le ${charge.dayOfMonth}` : null, charge.active ? null : 'suspendue']
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </span>
+                </span>
+                <strong className="charge-amount">{formatCurrency(charge.amount)}</strong>
+                {/* Libellés courts pour tenir sur la ligne ; le sens complet est dans l'aria-label. */}
+                <span className="charge-actions">
+                  <button
+                    aria-label={`${charge.active ? 'Suspendre' : 'Réactiver'} ${charge.label}`}
+                    className="mini-button"
+                    onClick={() => onToggle(charge)}
+                    type="button"
+                  >
+                    {charge.active ? 'Pause' : 'Activer'}
                   </button>
-                  <button className="danger-button" onClick={() => onDelete(charge)} type="button">
-                    Supprimer
+                  <button
+                    aria-label={`Supprimer ${charge.label}`}
+                    className="mini-button danger"
+                    onClick={() => onDelete(charge)}
+                    type="button"
+                  >
+                    Suppr.
                   </button>
-                </div>
+                </span>
               </div>
             ))
         )}
