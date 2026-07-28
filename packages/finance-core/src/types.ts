@@ -304,3 +304,44 @@ export type FinanceStore = {
   save: (data: FinanceData) => Promise<void>;
   clear: () => Promise<void>;
 };
+
+/**
+ * En-tête du document distant : de quoi décider quoi faire sans télécharger
+ * le document entier, ce qui compte sur un forfait mobile.
+ */
+export type RemoteDocumentHeader = {
+  /** Incrémentée à chaque écriture distante : c'est l'arbitre des conflits. */
+  revision: number;
+  /** Version de schéma avec laquelle l'appareil émetteur a écrit. */
+  schemaVersion: number;
+  updatedAt: string;
+};
+
+export type RemoteDocument = RemoteDocumentHeader & {
+  data: FinanceData;
+};
+
+/**
+ * Ce que cet appareil sait du dernier échange réussi.
+ *
+ * Ces informations vivent à côté des données et jamais dedans : elles
+ * décrivent un appareil, pas un patrimoine. Rangées dans `FinanceData`, elles
+ * voyageraient dans les exports et feraient croire à un autre appareil qu'il
+ * est déjà synchronisé.
+ */
+export type SyncMeta = {
+  /** Révision distante alignée avec le contenu local, null avant tout échange. */
+  revision: number | null;
+  /** Empreinte des données locales au moment de cet échange. */
+  fingerprint: string | null;
+  syncedAt: string | null;
+};
+
+/**
+ * Ce qu'il faut faire au prochain échange.
+ *
+ * `blocked` signale un document distant écrit par une version plus récente de
+ * FreePilot : le lire ferait perdre les champs que cette version ignore, et le
+ * réécrire les effacerait pour de bon. On préfère ne rien faire et le dire.
+ */
+export type SyncDecision = 'up-to-date' | 'push' | 'pull' | 'conflict' | 'blocked';

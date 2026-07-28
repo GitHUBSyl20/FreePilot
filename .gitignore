@@ -13,6 +13,8 @@ dev-dist/
 freepilot-export-*.json
 .env
 .env.*
+# Le modèle ne contient que les noms des variables, jamais de valeurs.
+!.env.example
 
 .DS_Store
 *.local

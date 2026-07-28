@@ -78,13 +78,25 @@ h2 {
   text-transform: uppercase;
 }
 
+/* Le vert est réservé à « synchronisé » : un stockage purement local est un
+   état neutre, pas une réussite ni une alerte. */
 .local-badge {
   border-radius: 999px;
   padding: 8px 12px;
-  color: #166534;
-  background: #dcfce7;
+  color: #344054;
+  background: rgb(20 33 61 / 8%);
   font-size: 0.75rem;
   font-weight: 900;
+}
+
+.local-badge.ok {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.local-badge.warn {
+  color: #991b1b;
+  background: #fee2e2;
 }
 
 .header-actions {
@@ -605,6 +617,58 @@ textarea {
 
 .balance-card .badge-row {
   margin-bottom: 14px;
+}
+
+/* --- Réglages --- */
+
+/* Le panneau est une grille : sans cette sous-grille, l'intitulé, l'aide et
+   le champ d'un même réglage se retrouveraient collés. */
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field .muted-note {
+  font-size: 0.78rem;
+}
+
+/* Champ court posé au bout d'une ligne, en face de son libellé. */
+.row-input {
+  flex: 0 0 auto;
+  width: 118px;
+  min-height: 38px;
+  padding: 0 10px;
+  text-align: right;
+}
+
+/* --- Synchronisation cloud --- */
+
+.sync-status {
+  font-size: 0.9rem;
+}
+
+.sync-status.idle {
+  color: #166534;
+}
+
+.sync-status.conflict,
+.sync-status.blocked,
+.sync-status.error {
+  color: #991b1b;
+}
+
+.sync-status.syncing,
+.sync-status.offline,
+.sync-status.signed-out {
+  color: #667085;
+}
+
+code {
+  border-radius: 6px;
+  padding: 1px 5px;
+  background: rgb(20 33 61 / 7%);
+  font-family: ui-monospace, "SFMono-Regular", "Consolas", monospace;
+  font-size: 0.94em;
 }
 
 @media (min-width: 760px) {

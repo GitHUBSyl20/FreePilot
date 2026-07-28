@@ -24,13 +24,17 @@ import {
   resetFinanceData,
   summarizeCrm,
   todayISO,
+  updateAccount,
   updateInvoice,
   updateProspect,
   updateRecurringCharge,
+  updateSettings,
   updateTransaction,
   upsertAREMonth,
 } from '@freepilot/finance-core';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { CloudStatus } from './cloud/useCloudSync';
+import { useCloudSync } from './cloud/useCloudSync';
 import type { Confirmation } from './components/ConfirmDialog';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { downloadFinanceData, readFinanceDataFile } from './dataTransfer';
@@ -39,15 +43,18 @@ import { webFinanceStore } from './localFinanceStore';
 import { PwaBanners } from './PwaBanners';
 import { AccountsView } from './views/AccountsView';
 import { AREMonthsView } from './views/AREMonthsView';
+import { CloudView } from './views/CloudView';
 import { CrmView } from './views/crm/CrmView';
 import { DashboardView } from './views/DashboardView';
 import { DataView } from './views/DataView';
 import { InvoicesView } from './views/InvoicesView';
 import { RecurringChargesView } from './views/RecurringChargesView';
+import { SettingsView } from './views/SettingsView';
 import { TransactionsView } from './views/TransactionsView';
 
 type Section = 'finances' | 'crm' | 'settings';
 type FinancePage = 'dashboard' | 'accounts' | 'invoices' | 'transactions' | 'charges' | 'are';
+type SettingsPage = 'calculs' | 'cloud' | 'donnees';
 
 const sections: [Section, string][] = [
   ['finances', 'Finances'],
@@ -64,10 +71,29 @@ const financePages: [FinancePage, string][] = [
   ['are', 'ARE'],
 ];
 
+const settingsPages: [SettingsPage, string][] = [
+  ['calculs', 'Calculs'],
+  ['cloud', 'Cloud'],
+  ['donnees', 'Données'],
+];
+
+/** Le bandeau dit d'un coup d'œil où vivent les données en ce moment. */
+const cloudBadges: Record<CloudStatus, { label: string; tone: '' | 'ok' | 'warn' }> = {
+  disabled: { label: 'Local', tone: '' },
+  'signed-out': { label: 'Local', tone: '' },
+  idle: { label: 'Cloud', tone: 'ok' },
+  syncing: { label: 'Synchro…', tone: '' },
+  offline: { label: 'Hors ligne', tone: '' },
+  conflict: { label: 'Conflit', tone: 'warn' },
+  blocked: { label: 'À mettre à jour', tone: 'warn' },
+  error: { label: 'Erreur', tone: 'warn' },
+};
+
 export const App = () => {
   const [data, setData] = useState<FinanceData | null>(null);
   const [section, setSection] = useState<Section>('finances');
   const [financePage, setFinancePage] = useState<FinancePage>('dashboard');
+  const [settingsPage, setSettingsPage] = useState<SettingsPage>('calculs');
   const [dataNotice, setDataNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
 
@@ -77,6 +103,15 @@ export const App = () => {
   useEffect(() => {
     void loadOrSeedFinanceData(webFinanceStore).then(setData);
   }, []);
+
+  // Défini avant le rendu conditionnel : la synchro en a besoin pour appliquer
+  // un document venu du cloud, exactement comme une modification locale.
+  const saveData = useCallback((nextData: FinanceData) => {
+    setData(nextData);
+    void webFinanceStore.save(nextData);
+  }, []);
+
+  const cloud = useCloudSync({ data, onRemoteData: saveData });
 
   const projection = useMemo(() => (data ? projectDashboard(data, currentMonth) : null), [currentMonth, data]);
   const series = useMemo(() => (data ? buildFinanceSeries(data, currentMonth) : []), [currentMonth, data]);
@@ -91,12 +126,8 @@ export const App = () => {
     );
   }
 
-  const saveData = (nextData: FinanceData) => {
-    setData(nextData);
-    void webFinanceStore.save(nextData);
-  };
-
   const professionalAccountId = getProfessionalAccount(data)?.id;
+  const cloudBadge = cloudBadges[cloud.status];
 
   const handleExportData = () => {
     downloadFinanceData(data);
@@ -195,7 +226,7 @@ export const App = () => {
           <h1>{formatMonthLabel(currentMonth)}</h1>
         </div>
         <div className="header-actions">
-          <span className="local-badge">Local</span>
+          <span className={`local-badge ${cloudBadge.tone}`}>{cloudBadge.label}</span>
         </div>
       </header>
 
@@ -238,6 +269,14 @@ export const App = () => {
             <AccountsView
               accounts={projection.accountBalances}
               onTransfer={(input) => saveData(createTransfer(data, { ...input, date: today() }))}
+              onUpdateOpeningBalances={(entries) =>
+                saveData(
+                  entries.reduce(
+                    (current, entry) => updateAccount(current, entry.id, { openingBalance: entry.openingBalance }),
+                    data,
+                  ),
+                )
+              }
             />
           ) : null}
 
@@ -307,12 +346,41 @@ export const App = () => {
       ) : null}
 
       {section === 'settings' ? (
-        <DataView
-          notice={dataNotice}
-          onExport={handleExportData}
-          onImport={handleImportData}
-          onReset={handleResetData}
-        />
+        <>
+          <nav className="tabs" aria-label="Navigation réglages">
+            {settingsPages.map(([id, label]) => (
+              <button
+                className={settingsPage === id ? 'active' : ''}
+                key={id}
+                onClick={() => setSettingsPage(id)}
+                type="button"
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+
+          <section className="details-stack single">
+            {settingsPage === 'calculs' ? (
+              <SettingsView
+                onSave={(nextSettings) => saveData(updateSettings(data, nextSettings))}
+                settings={data.settings}
+              />
+            ) : null}
+
+            {settingsPage === 'cloud' ? <CloudView cloud={cloud} /> : null}
+
+            {settingsPage === 'donnees' ? (
+              <DataView
+                cloudActive={cloud.user !== null}
+                notice={dataNotice}
+                onExport={handleExportData}
+                onImport={handleImportData}
+                onReset={handleResetData}
+              />
+            ) : null}
+          </section>
+        </>
       ) : null}
 
       {confirmation ? (

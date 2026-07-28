@@ -37,6 +37,7 @@
   "dependencies": {
     "@capacitor/core": "^7.6.5",
     "@freepilot/finance-core": "*",
+    "@supabase/supabase-js": "^2.110.9",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   }

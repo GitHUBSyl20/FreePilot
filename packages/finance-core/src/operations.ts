@@ -1,4 +1,5 @@
 import type {
+  Account,
   AccountBalance,
   ChargeScope,
   DashboardProjection,
@@ -37,6 +38,34 @@ export const calculateAccountBalances = (data: FinanceData): AccountBalance[] =>
 
 export const getProfessionalAccount = (data: FinanceData) =>
   data.accounts.find((account) => account.kind === 'professional') ?? data.accounts[0];
+
+/**
+ * Le solde d'ouverture est le point de départ du calcul de solde : il absorbe
+ * tout ce qui précède la première opération saisie. C'est le seul moyen de
+ * faire coïncider ce qu'affiche l'application avec le relevé bancaire.
+ */
+export const updateAccount = (
+  data: FinanceData,
+  accountId: string,
+  input: Partial<Pick<Account, 'name' | 'openingBalance'>>,
+): FinanceData => ({
+  ...data,
+  accounts: data.accounts.map((account) => {
+    if (account.id !== accountId) return account;
+
+    return {
+      ...account,
+      name: input.name?.trim() || account.name,
+      // Un solde d'ouverture peut être négatif : il rattrape les dépenses
+      // antérieures à la première opération saisie. Surtout pas de plancher
+      // à zéro ici, contrairement aux montants d'opération.
+      openingBalance:
+        input.openingBalance === undefined || !Number.isFinite(input.openingBalance)
+          ? account.openingBalance
+          : Math.round(input.openingBalance * 100) / 100,
+    };
+  }),
+});
 
 export const projectDashboard = (data: FinanceData, month: string = getCurrentMonth()): DashboardProjection => {
   const outlook = projectMonthlyOutlook(data, month);
