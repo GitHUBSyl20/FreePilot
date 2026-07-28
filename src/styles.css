@@ -391,6 +391,41 @@ select {
   background: #fee2e2;
 }
 
+/* Confirmation rendue par l'app : une boîte native peut être supprimée par
+   le navigateur, et l'action serait alors annulée sans aucun message. */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgb(20 33 61 / 55%);
+}
+
+.dialog {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 420px);
+  padding: 24px;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgb(20 33 61 / 30%);
+}
+
+.dialog p {
+  margin: 0;
+  color: #475467;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.dialog .danger-button,
+.dialog .secondary-button {
+  min-height: 44px;
+}
+
 /* --- CRM --- */
 
 textarea {

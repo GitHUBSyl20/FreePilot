@@ -31,6 +31,8 @@ import {
   upsertAREMonth,
 } from '@freepilot/finance-core';
 import { useEffect, useMemo, useState } from 'react';
+import type { Confirmation } from './components/ConfirmDialog';
+import { ConfirmDialog } from './components/ConfirmDialog';
 import { downloadFinanceData, readFinanceDataFile } from './dataTransfer';
 import { formatMonthLabel, today } from './format';
 import { webFinanceStore } from './localFinanceStore';
@@ -67,6 +69,7 @@ export const App = () => {
   const [section, setSection] = useState<Section>('finances');
   const [financePage, setFinancePage] = useState<FinancePage>('dashboard');
   const [dataNotice, setDataNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
 
   const currentMonth = useMemo(() => getCurrentMonth(), []);
   const currentDay = useMemo(() => todayISO(), []);
@@ -108,12 +111,16 @@ export const App = () => {
 
     try {
       const imported = await readFinanceDataFile(file);
-      if (!window.confirm('Remplacer toutes les données actuelles par le contenu de ce fichier ?')) return;
+      const summary = `${imported.invoices.length} facture(s), ${imported.recurringCharges.length} charge(s), ${imported.areMonths.length} mois d’ARE, ${imported.prospects.length} prospect(s)`;
 
-      saveData(imported);
-      setDataNotice({
-        tone: 'ok',
-        text: `Import réussi : ${imported.invoices.length} facture(s), ${imported.recurringCharges.length} charge(s), ${imported.areMonths.length} mois d’ARE.`,
+      setConfirmation({
+        title: 'Remplacer les données ?',
+        message: `Le fichier contient ${summary}. Tout le contenu actuel sera écrasé.`,
+        confirmLabel: 'Remplacer',
+        onConfirm: () => {
+          saveData(imported);
+          setDataNotice({ tone: 'ok', text: `Import réussi : ${summary}.` });
+        },
       });
     } catch (error) {
       setDataNotice({ tone: 'error', text: error instanceof Error ? error.message : 'Import impossible.' });
@@ -121,38 +128,63 @@ export const App = () => {
   };
 
   const handleResetData = () => {
-    if (!window.confirm('Effacer toutes les données locales et repartir des données de démo ?')) return;
-
-    void resetFinanceData(webFinanceStore).then((resetData) => {
-      setData(resetData);
-      setSection('finances');
-      setFinancePage('dashboard');
+    setConfirmation({
+      title: 'Effacer les données ?',
+      message: 'Tout le contenu local est supprimé et remplacé par les données de démonstration.',
+      confirmLabel: 'Effacer',
+      onConfirm: () => {
+        void resetFinanceData(webFinanceStore).then((resetData) => {
+          setData(resetData);
+          setSection('finances');
+          setFinancePage('dashboard');
+        });
+      },
     });
   };
 
   const handleDeleteInvoice = (invoice: EditableInvoice) => {
-    if (!window.confirm(`Supprimer la facture de ${invoice.clientName} ?`)) return;
-    saveData(deleteInvoice(data, invoice.id));
+    setConfirmation({
+      title: 'Supprimer la facture ?',
+      message: `La facture de ${invoice.clientName} et son encaissement éventuel seront supprimés.`,
+      confirmLabel: 'Supprimer',
+      onConfirm: () => saveData(deleteInvoice(data, invoice.id)),
+    });
   };
 
   const handleDeleteTransaction = (transaction: Transaction) => {
-    if (!window.confirm(`Supprimer l'opération "${transaction.label}" ?`)) return;
-    saveData(deleteTransaction(data, transaction.id));
+    setConfirmation({
+      title: 'Supprimer l’opération ?',
+      message: `« ${transaction.label} » sera supprimée.`,
+      confirmLabel: 'Supprimer',
+      onConfirm: () => saveData(deleteTransaction(data, transaction.id)),
+    });
   };
 
   const handleDeleteCharge = (charge: RecurringCharge) => {
-    if (!window.confirm(`Supprimer la charge "${charge.label}" ?`)) return;
-    saveData(deleteRecurringCharge(data, charge.id));
+    setConfirmation({
+      title: 'Supprimer la charge ?',
+      message: `« ${charge.label} » ne sera plus comptée dans les charges fixes.`,
+      confirmLabel: 'Supprimer',
+      onConfirm: () => saveData(deleteRecurringCharge(data, charge.id)),
+    });
   };
 
   const handleDeleteProspect = (prospect: Prospect) => {
-    if (!window.confirm(`Supprimer ${prospect.name} et tout son historique de contacts ?`)) return;
-    saveData(deleteProspect(data, prospect.id));
+    setConfirmation({
+      title: 'Supprimer le prospect ?',
+      message: `${prospect.name} et tout son historique de contacts seront supprimés. Les factures déjà émises sont conservées.`,
+      confirmLabel: 'Supprimer',
+      onConfirm: () => saveData(deleteProspect(data, prospect.id)),
+    });
   };
 
   const handleDeleteInteraction = (interaction: Interaction) => {
-    if (!window.confirm('Supprimer ce contact de l’historique ?')) return;
-    saveData(deleteInteraction(data, interaction.id));
+    setConfirmation({
+      title: 'Supprimer ce contact ?',
+      message: 'Il disparaîtra de l’historique, ce qui peut décaler la prochaine relance.',
+      confirmLabel: 'Supprimer',
+      onConfirm: () => saveData(deleteInteraction(data, interaction.id)),
+    });
   };
 
   return (
@@ -281,6 +313,10 @@ export const App = () => {
           onImport={handleImportData}
           onReset={handleResetData}
         />
+      ) : null}
+
+      {confirmation ? (
+        <ConfirmDialog confirmation={confirmation} onCancel={() => setConfirmation(null)} />
       ) : null}
     </main>
   );

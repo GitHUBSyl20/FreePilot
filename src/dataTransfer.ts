@@ -43,8 +43,24 @@ export const downloadFinanceData = (data: FinanceData): void => {
   URL.revokeObjectURL(url);
 };
 
+/**
+ * `File.text()` manque sur les navigateurs mobiles un peu anciens (Safari
+ * antérieur à 14, certaines vues web intégrées). On retombe alors sur
+ * `FileReader`, sinon l'import échouerait sur le téléphone.
+ */
+const readFileText = async (file: File): Promise<string> => {
+  if (typeof file.text === 'function') return file.text();
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('Fichier illisible : lecture impossible.'));
+    reader.readAsText(file);
+  });
+};
+
 export const readFinanceDataFile = async (file: File): Promise<FinanceData> => {
-  const text = await file.text();
+  const text = await readFileText(file);
 
   let parsed: unknown;
   try {
