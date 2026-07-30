@@ -45,13 +45,18 @@ Pour l'application Android, les mêmes variables doivent être présentes au
 moment du `npm run build` qui précède `cap sync` : elles sont figées dans le
 bundle.
 
-## Vérifier que la protection fonctionne
+## Vérifier que tout fonctionne
 
-Dans **SQL Editor**, `select * from finance_documents;` s'exécute avec les
-droits d'administration et renvoie tout : ce n'est pas un test. La bonne
-vérification est côté application, avec un second compte : il ne doit voir
-aucune ligne. Les politiques `finance_documents_*` de [`schema.sql`](schema.sql)
-limitent chaque compte à `auth.uid() = user_id`, en lecture comme en écriture.
+Une fois la mise en service faite, dérouler [`VERIFICATION.md`](VERIFICATION.md) :
+la procédure couvre le premier envoi, l'aller-retour entre deux appareils, le
+conflit, le hors-ligne et l'isolation entre comptes.
+
+Un point mérite d'être redit ici, parce qu'il se rate facilement : dans
+**SQL Editor**, `select * from finance_documents;` s'exécute avec les droits
+d'administration et renvoie tout : ce n'est pas un test. La bonne vérification
+est côté application, avec un second compte : il ne doit voir aucune ligne. Les
+politiques `finance_documents_*` de [`schema.sql`](schema.sql) limitent chaque
+compte à `auth.uid() = user_id`, en lecture comme en écriture.
 
 ## Ce que le cloud ne remplace pas
 
