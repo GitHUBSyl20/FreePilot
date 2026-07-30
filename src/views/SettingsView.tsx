@@ -40,7 +40,10 @@ const groups: Group[] = [
       {
         key: 'franceTravailDeductionRate',
         label: 'Taux de déduction France Travail (%)',
-        helper: "Part du revenu d'activité retirée de l'ARE du mois suivant.",
+        // Le panneau des effets annonce « 46,2 % du CA » : ce chiffre est le
+        // produit de l'abattement et de ce taux, pas le taux lui-même. Le
+        // confondre divise la déduction par un tiers, en silence.
+        helper: "Appliqué au revenu après abattement, 70 % en principe. À ne pas confondre avec la déduction ARE affichée plus haut en % du CA, qui en découle.",
       },
     ],
   },

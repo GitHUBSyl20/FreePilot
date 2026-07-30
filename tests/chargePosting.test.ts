@@ -146,11 +146,31 @@ describe('compte prélevé', () => {
     expect(balances.find((account) => account.id === 'perso')?.balance).toBe(-760);
   });
 
-  it('ne touche pas aux échéances quand le compte débité ne change pas', () => {
+  it('renomme aussi les échéances déjà posées', () => {
+    // Renommer une charge corrige une saisie : laisser le passé sous l'ancien
+    // nom rendrait l'historique illisible.
     const posted = postDueRecurringCharges(scenario(), '2026-08');
-    const renamed = updateRecurringCharge(posted, 'outils', { label: 'Outils en ligne' });
+    const renamed = updateRecurringCharge(posted, 'outils', { label: 'Abonnements en ligne' });
 
-    expect(renamed.transactions).toEqual(posted.transactions);
+    expect(generated(renamed).find((transaction) => transaction.recurringChargeId === 'outils')?.label).toBe(
+      'Abonnements en ligne',
+    );
+  });
+
+  it('ne propage pas un changement de montant aux échéances passées', () => {
+    // Un prélèvement déjà passé a eu le montant qu'il a eu ; seul l'avenir
+    // suit le nouveau montant.
+    const posted = postDueRecurringCharges(scenario(), '2026-08');
+    const repriced = updateRecurringCharge(posted, 'outils', { amount: 75 });
+
+    expect(generated(repriced).find((transaction) => transaction.recurringChargeId === 'outils')?.amount).toBe(60);
+  });
+
+  it('ne touche pas aux échéances quand ni le libellé ni le compte ne changent', () => {
+    const posted = postDueRecurringCharges(scenario(), '2026-08');
+    const moved = updateRecurringCharge(posted, 'outils', { dayOfMonth: 12 });
+
+    expect(moved.transactions).toEqual(posted.transactions);
   });
 });
 

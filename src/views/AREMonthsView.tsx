@@ -40,28 +40,32 @@ export function AREMonthsView({ currentMonth, entries, onDelete, onSave, series 
   return (
     <section className="details-stack single">
       <Panel title="Saisir l’ARE d’un mois">
-        <p className="muted-note">
-          L’ARE pleine est le montant notifié par France Travail avant déduction. Elle est révisée dans le temps,
-          d’où une saisie mois par mois. L’ARE versée se renseigne une fois le paiement reçu : c’est elle qui
-          décompte tes jours de droits.
-        </p>
-        <label htmlFor="are-month">Mois</label>
-        <input id="are-month" onChange={(event) => setMonth(event.target.value)} type="month" value={month} />
-        <input
-          inputMode="decimal"
-          onChange={(event) => setFullARE(event.target.value)}
-          placeholder="ARE pleine notifiée"
-          value={fullARE}
-        />
-        <input
-          inputMode="decimal"
-          onChange={(event) => setActualARE(event.target.value)}
-          placeholder="ARE versée (optionnel)"
-          value={actualARE}
-        />
-        <button className="primary-button" onClick={submit} type="button">
-          Enregistrer le mois
-        </button>
+        <div className="field-grid">
+          <input
+            aria-label="Mois"
+            id="are-month"
+            onChange={(event) => setMonth(event.target.value)}
+            type="month"
+            value={month}
+          />
+          <input
+            aria-label="ARE pleine notifiée"
+            inputMode="decimal"
+            onChange={(event) => setFullARE(event.target.value)}
+            placeholder="ARE pleine"
+            value={fullARE}
+          />
+          <input
+            aria-label="ARE versée"
+            inputMode="decimal"
+            onChange={(event) => setActualARE(event.target.value)}
+            placeholder="ARE versée"
+            value={actualARE}
+          />
+          <button className="primary-button" onClick={submit} type="button">
+            Enregistrer
+          </button>
+        </div>
       </Panel>
 
       <Panel title="Mois renseignés">
@@ -71,20 +75,32 @@ export function AREMonthsView({ currentMonth, entries, onDelete, onSave, series 
           [...entries]
             .sort((left, right) => right.month.localeCompare(left.month))
             .map((entry) => (
-              <div className="record-card" key={entry.month}>
-                <InfoRow
-                  helper={entry.actualARE === null ? 'ARE versée non renseignée' : `Versée : ${formatCurrency(entry.actualARE)}`}
-                  label={formatMonthLabel(entry.month)}
-                  value={formatCurrency(entry.fullMonthlyARE)}
-                />
-                <div className="button-row">
-                  <button className="secondary-button" onClick={() => edit(entry)} type="button">
-                    Modifier
+              <div className="charge-row" key={entry.month}>
+                <span className="charge-label">
+                  <strong>{formatMonthLabel(entry.month)}</strong>{' '}
+                  <span>
+                    {entry.actualARE === null ? 'versée non renseignée' : `versée ${formatCurrency(entry.actualARE)}`}
+                  </span>
+                </span>
+                <strong className="charge-amount">{formatCurrency(entry.fullMonthlyARE)}</strong>
+                <span className="charge-actions">
+                  <button
+                    aria-label={`Modifier ${formatMonthLabel(entry.month)}`}
+                    className="mini-button"
+                    onClick={() => edit(entry)}
+                    type="button"
+                  >
+                    Modif.
                   </button>
-                  <button className="danger-button" onClick={() => onDelete(entry.month)} type="button">
-                    Supprimer
+                  <button
+                    aria-label={`Supprimer ${formatMonthLabel(entry.month)}`}
+                    className="mini-button danger"
+                    onClick={() => onDelete(entry.month)}
+                    type="button"
+                  >
+                    Suppr.
                   </button>
-                </div>
+                </span>
               </div>
             ))
         )}
@@ -97,14 +113,10 @@ export function AREMonthsView({ currentMonth, entries, onDelete, onSave, series 
           [...series].reverse().map((cashflow) => (
             <div className="record-card" key={cashflow.month}>
               <InfoRow
-                helper={`ARE théorique ${formatCurrency(cashflow.theoreticalARE.value)} · déduction reportée ${formatCurrency(cashflow.carriedDeduction)}`}
+                helper={`théorique ${formatCurrency(cashflow.theoreticalARE.value)} · reporté ${formatCurrency(cashflow.carriedDeduction)} · ${formatDays(cashflow.areDaysConsumed)} consommés`}
                 label={formatMonthLabel(cashflow.month)}
                 value={formatCurrency(cashflow.effectiveARE)}
               />
-              <p className="muted-note">
-                CA {formatCurrency(cashflow.collectedRevenue)} → déduction {formatCurrency(cashflow.areDeduction.value)} sur le mois suivant ·
-                {' '}{formatDays(cashflow.areDaysConsumed)} consommés
-              </p>
             </div>
           ))
         )}

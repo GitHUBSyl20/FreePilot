@@ -85,45 +85,50 @@ export function TransactionsView({ onAddExpense, onAddOtherIncome, onDelete, onU
       </Panel>
 
       <Panel title="Historique">
+        {/* Les règles valent pour toute la liste : les répéter sous chaque ligne
+            allongeait l'écran d'une page entière dès qu'il y avait des charges. */}
+        <p className="muted-note">
+          Un encaissement de facture se modifie depuis la facture. Un prélèvement de charge fixe se corrige
+          ici mais ne se supprime pas — il serait recréé ; pour l’arrêter, suspends la charge.
+        </p>
         {transactions.length === 0 ? (
           <EmptyState>Aucune opération enregistrée.</EmptyState>
         ) : (
           transactions.map((transaction) => (
-            <div className="record-card" key={transaction.id}>
-              <InfoRow
-                helper={`${transaction.recurringChargeId ? 'Charge fixe' : kindLabels[transaction.kind]} · ${formatDate(transaction.date)}`}
-                label={transaction.label}
-                value={formatCurrency(transaction.amount)}
-              />
-              {transaction.invoiceId ? (
-                <p className="muted-note">Encaissement lié à une facture, à modifier depuis la facture.</p>
-              ) : (
-                <>
-                  <div className="button-row">
-                    <button className="secondary-button" onClick={() => edit(transaction)} type="button">Modifier</button>
-                    {/* Une échéance de charge n'est pas supprimable : elle serait
-                        aussitôt recréée par la génération automatique. */}
-                    {transaction.recurringChargeId ? null : (
-                      <button
-                        className="danger-button"
-                        onClick={() => {
-                          onDelete(transaction);
-                          if (editingId === transaction.id) reset();
-                        }}
-                        type="button"
-                      >
-                        Supprimer
-                      </button>
-                    )}
-                  </div>
-                  {transaction.recurringChargeId ? (
-                    <p className="muted-note">
-                      Prélèvement engendré par une charge fixe. Le montant se corrige ici si le débit du mois a
-                      été différent. Pour arrêter les suivants, suspends la charge dans l’onglet Charges.
-                    </p>
-                  ) : null}
-                </>
-              )}
+            <div className="charge-row" key={transaction.id}>
+              <span className="charge-label">
+                <strong>{transaction.label}</strong>{' '}
+                <span>
+                  {transaction.recurringChargeId ? 'Charge fixe' : kindLabels[transaction.kind]} ·{' '}
+                  {formatDate(transaction.date)}
+                </span>
+              </span>
+              <strong className="charge-amount">{formatCurrency(transaction.amount)}</strong>
+              <span className="charge-actions">
+                {transaction.invoiceId ? null : (
+                  <button
+                    aria-label={`Modifier ${transaction.label}`}
+                    className="mini-button"
+                    onClick={() => edit(transaction)}
+                    type="button"
+                  >
+                    Modif.
+                  </button>
+                )}
+                {transaction.invoiceId || transaction.recurringChargeId ? null : (
+                  <button
+                    aria-label={`Supprimer ${transaction.label}`}
+                    className="mini-button danger"
+                    onClick={() => {
+                      onDelete(transaction);
+                      if (editingId === transaction.id) reset();
+                    }}
+                    type="button"
+                  >
+                    Suppr.
+                  </button>
+                )}
+              </span>
             </div>
           ))
         )}

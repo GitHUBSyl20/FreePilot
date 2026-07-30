@@ -331,6 +331,7 @@ export const App = () => {
                 saveData(updateRecurringCharge(data, charge.id, { paymentAccountId }))
               }
               onToggle={(charge) => saveData(updateRecurringCharge(data, charge.id, { active: !charge.active }))}
+              onUpdate={(chargeId, input) => saveData(updateRecurringCharge(data, chargeId, input))}
               totals={projection.outlook.recurringCharges}
             />
           ) : null}

@@ -350,21 +350,28 @@ export const updateRecurringCharge = (
   };
 
   const debitAccountId = chargeDebitAccountId(withCharge, nextCharge);
-  if (debitAccountId === chargeDebitAccountId(data, currentCharge)) return withCharge;
+  const accountChanged = debitAccountId !== chargeDebitAccountId(data, currentCharge);
+  const labelChanged = nextCharge.label !== currentCharge.label;
+  if (!accountChanged && !labelChanged) return withCharge;
 
   /*
-   * Corriger le compte prélevé corrige aussi les échéances déjà posées.
+   * Le libellé et le compte prélevé se propagent aux échéances déjà posées.
    *
    * Une charge décrit un prélèvement permanent : l'application n'a pas de
-   * notion de « le compte a changé à telle date ». Dans la pratique, on
-   * corrige une saisie erronée, et laisser le passé sur le mauvais compte
-   * fausserait durablement les deux soldes. Pour un vrai changement de
+   * notion de « le nom a changé à telle date ». Dans la pratique on corrige
+   * une saisie, et laisser le passé sous l'ancien nom ou sur le mauvais
+   * compte fausserait durablement la lecture. Pour un vrai changement de
    * banque, mieux vaut suspendre la charge et en créer une nouvelle.
+   *
+   * Le montant, lui, ne se propage pas : un prélèvement passé a pu être
+   * différent, et il se corrige échéance par échéance.
    */
   return {
     ...withCharge,
     transactions: withCharge.transactions.map((transaction) =>
-      transaction.recurringChargeId === chargeId ? { ...transaction, fromAccountId: debitAccountId } : transaction,
+      transaction.recurringChargeId === chargeId
+        ? { ...transaction, fromAccountId: debitAccountId, label: nextCharge.label }
+        : transaction,
     ),
   };
 };

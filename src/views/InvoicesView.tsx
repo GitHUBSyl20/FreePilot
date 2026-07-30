@@ -111,37 +111,54 @@ export function InvoicesView({
           <EmptyState>Aucune facture enregistrée.</EmptyState>
         ) : (
           invoices.map((invoice) => (
-            <div className="record-card" key={invoice.id}>
-              <InfoRow
-                helper={[statusSummary(invoice), prospectName(invoice.prospectId)].filter(Boolean).join(' · ')}
-                label={invoice.clientName}
-                value={formatCurrency(invoice.totalTTC)}
-              />
-              <div className="button-row">
+            <div className="charge-row" key={invoice.id}>
+              <span className="charge-label">
+                <strong>{invoice.clientName}</strong>{' '}
+                <span>{[statusSummary(invoice), prospectName(invoice.prospectId)].filter(Boolean).join(' · ')}</span>
+              </span>
+              <strong className="charge-amount">{formatCurrency(invoice.totalTTC)}</strong>
+              {/* Libellés courts pour tenir sur la ligne ; le sens complet est dans l'aria-label. */}
+              <span className="charge-actions">
                 {invoice.status === 'draft' ? (
-                  <button className="secondary-button" onClick={() => onMarkSent(invoice)} type="button">
-                    Marquer émise
+                  <button
+                    aria-label={`Marquer émise la facture ${invoice.clientName}`}
+                    className="mini-button"
+                    onClick={() => onMarkSent(invoice)}
+                    type="button"
+                  >
+                    Émise
                   </button>
                 ) : null}
                 {invoice.status !== 'paid' && canMarkPaid ? (
-                  <button className="secondary-button" onClick={() => onMarkPaid(invoice)} type="button">
-                    Marquer payée
+                  <button
+                    aria-label={`Marquer payée la facture ${invoice.clientName}`}
+                    className="mini-button"
+                    onClick={() => onMarkPaid(invoice)}
+                    type="button"
+                  >
+                    Payée
                   </button>
                 ) : null}
-              </div>
-              <div className="button-row">
-                <button className="secondary-button" onClick={() => edit(invoice)} type="button">Modifier</button>
                 <button
-                  className="danger-button"
+                  aria-label={`Modifier la facture ${invoice.clientName}`}
+                  className="mini-button"
+                  onClick={() => edit(invoice)}
+                  type="button"
+                >
+                  Modif.
+                </button>
+                <button
+                  aria-label={`Supprimer la facture ${invoice.clientName}`}
+                  className="mini-button danger"
                   onClick={() => {
                     onDelete(invoice);
                     if (editingId === invoice.id) reset();
                   }}
                   type="button"
                 >
-                  Supprimer
+                  Suppr.
                 </button>
-              </div>
+              </span>
             </div>
           ))
         )}
