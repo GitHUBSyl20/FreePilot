@@ -3,7 +3,8 @@
   "configurations": [
     {
       "name": "freepilot-web",
-      "url": "http://localhost:5173",
+      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+      "runtimeArgs": ["node_modules/vite/bin/vite.js"],
       "port": 5173
     }
   ]

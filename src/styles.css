@@ -672,6 +672,15 @@ textarea {
   font-size: 0.78rem;
 }
 
+/* Sous le champ, pas au-dessus : l'effet se lit après la valeur qui le produit. */
+.field-effect {
+  margin-bottom: 0;
+  color: #4338ca;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
 /* Champ court posé au bout d'une ligne, en face de son libellé. */
 .row-input {
   flex: 0 0 auto;

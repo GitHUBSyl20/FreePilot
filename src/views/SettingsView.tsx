@@ -10,10 +10,21 @@ import { useState } from 'react';
 import { InfoRow, Panel } from '../components/Panel';
 import { formatCurrency, formatPercent, parseOptionalAmount } from '../format';
 
+/** Ce que la saisie en cours produit vraiment, recalculé à chaque frappe. */
+type Effects = {
+  areDeductionRate: number;
+};
+
 type Field = {
   key: NumericSettingKey;
   label: string;
   helper?: string;
+  /**
+   * Un taux dont l'effet ne se lit qu'ailleurs sur l'écran se saisit de
+   * travers sans que rien ne l'indique : le rappeler sous le champ rend
+   * l'erreur visible au moment où elle se commet.
+   */
+  effect?: (effects: Effects) => string;
 };
 
 type Group = {
@@ -40,10 +51,12 @@ const groups: Group[] = [
       {
         key: 'franceTravailDeductionRate',
         label: 'Taux de déduction France Travail (%)',
+        helper: 'Appliqué au revenu après abattement, 70 % en principe.',
         // Le panneau des effets annonce « 46,2 % du CA » : ce chiffre est le
         // produit de l'abattement et de ce taux, pas le taux lui-même. Le
-        // confondre divise la déduction par un tiers, en silence.
-        helper: "Appliqué au revenu après abattement, 70 % en principe. À ne pas confondre avec la déduction ARE affichée plus haut en % du CA, qui en découle.",
+        // confondre divise la déduction par un tiers, en silence. L'effet
+        // affiché sous le champ démonte la confusion au lieu de la déconseiller.
+        effect: ({ areDeductionRate }) => `Cette valeur donne une déduction de ${formatPercent(areDeductionRate)} du CA.`,
       },
     ],
   },
@@ -120,6 +133,7 @@ export function SettingsView({ onSave, settings }: Props) {
   // pourcentage : les effets ne peuvent pas diverger des calculs réels.
   const areDeductionRate = calculateAREDeduction(100, preview).value;
   const taxRate = calculateIncomeTaxProvision(100, preview).value;
+  const effects: Effects = { areDeductionRate };
 
   const edit = (key: NumericSettingKey, value: string) => {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -180,6 +194,7 @@ export function SettingsView({ onSave, settings }: Props) {
                 onChange={(event) => edit(field.key, event.target.value)}
                 value={draft[field.key] ?? ''}
               />
+              {field.effect ? <p className="field-effect">{field.effect(effects)}</p> : null}
             </div>
           ))}
         </Panel>
