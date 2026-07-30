@@ -11,7 +11,8 @@ import { describe, expect, it } from 'vitest';
 
 /** Document minimal : la synchro ne regarde pas le contenu métier. */
 const document = (): FinanceData => ({
-  version: 3,
+  version: 4,
+  recurringChargeAutoPostFrom: null,
   settings: defaultSettings,
   accounts: [{ id: 'pro', name: 'Compte pro', kind: 'professional', openingBalance: 0 }],
   invoices: [
@@ -59,6 +60,7 @@ describe('fingerprintFinanceData', () => {
       invoices: data.invoices,
       accounts: data.accounts,
       settings: data.settings,
+      recurringChargeAutoPostFrom: data.recurringChargeAutoPostFrom,
       version: data.version,
     } as FinanceData;
 

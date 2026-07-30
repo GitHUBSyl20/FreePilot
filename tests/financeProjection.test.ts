@@ -11,7 +11,8 @@ import { describe, expect, it } from 'vitest';
 
 /** Scénario fictif : deux mois facturés, une ARE versée, deux charges fixes. */
 const scenario = (): FinanceData => ({
-  version: 3,
+  version: 4,
+  recurringChargeAutoPostFrom: null,
   settings: defaultSettings,
   accounts: [{ id: 'pro', name: 'Compte pro', kind: 'professional', openingBalance: 0 }],
   invoices: [

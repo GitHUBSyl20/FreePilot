@@ -6,36 +6,21 @@ import { formatCurrency, parseAmount, parseOptionalAmount } from '../format';
 type Props = {
   accounts: AccountBalance[];
   onTransfer: (input: { fromAccountId: string; toAccountId: string; amount: number }) => void;
-  onUpdateOpeningBalances: (entries: { id: string; openingBalance: number }[]) => void;
+  onSetObservedBalances: (entries: { id: string; observedBalance: number }[]) => void;
 };
 
-export function AccountsView({ accounts, onTransfer, onUpdateOpeningBalances }: Props) {
+export function AccountsView({ accounts, onSetObservedBalances, onTransfer }: Props) {
   const [fromAccountId, setFromAccountId] = useState('');
   const [toAccountId, setToAccountId] = useState('');
   const [amount, setAmount] = useState('');
-  const [openingDraft, setOpeningDraft] = useState<Record<string, string>>({});
-  const [openingSaved, setOpeningSaved] = useState(false);
+  const [observed, setObserved] = useState<Record<string, string>>({});
+  const [observedSaved, setObservedSaved] = useState(false);
 
   // Les comptes arrivent après le chargement des données : on initialise le
   // virement sur le trajet le plus courant, du pro vers le perso.
   useEffect(() => {
     setFromAccountId((current) => current || accounts.find((account) => account.kind === 'professional')?.id || '');
     setToAccountId((current) => current || accounts.find((account) => account.kind === 'personal')?.id || '');
-  }, [accounts]);
-
-  // Les soldes d'ouverture ne sont initialisés qu'une fois : les réinitialiser
-  // à chaque rendu écraserait la saisie en cours, puisque `accounts` est
-  // recalculé à chaque modification des données.
-  useEffect(() => {
-    setOpeningDraft((current) =>
-      accounts.reduce<Record<string, string>>(
-        (draft, account) => ({
-          ...draft,
-          [account.id]: current[account.id] ?? String(account.openingBalance).replace('.', ','),
-        }),
-        {},
-      ),
-    );
   }, [accounts]);
 
   const submit = () => {
@@ -48,23 +33,17 @@ export function AccountsView({ accounts, onTransfer, onUpdateOpeningBalances }: 
 
   const sameAccount = fromAccountId !== '' && fromAccountId === toAccountId;
 
-  const submitOpeningBalances = () => {
+  const submitObserved = () => {
     const entries = accounts
-      .map((account) => ({ id: account.id, openingBalance: parseOptionalAmount(openingDraft[account.id] ?? '') }))
-      .filter((entry): entry is { id: string; openingBalance: number } => entry.openingBalance !== undefined);
+      .map((account) => ({ id: account.id, observedBalance: parseOptionalAmount(observed[account.id] ?? '') }))
+      .filter((entry): entry is { id: string; observedBalance: number } => entry.observedBalance !== undefined);
 
     if (entries.length === 0) return;
 
-    onUpdateOpeningBalances(entries);
-    // On réaffiche les valeurs telles qu'elles sont enregistrées, arrondies au
-    // centime, plutôt que la frappe brute.
-    setOpeningDraft((current) =>
-      entries.reduce(
-        (draft, entry) => ({ ...draft, [entry.id]: String(Math.round(entry.openingBalance * 100) / 100).replace('.', ',') }),
-        current,
-      ),
-    );
-    setOpeningSaved(true);
+    onSetObservedBalances(entries);
+    // Les champs se vident : le solde affiché vient de devenir la référence.
+    setObserved({});
+    setObservedSaved(true);
   };
 
   return (
@@ -75,35 +54,36 @@ export function AccountsView({ accounts, onTransfer, onUpdateOpeningBalances }: 
         ))}
       </Panel>
 
-      <Panel title="Soldes d'ouverture">
+      <Panel title="Recaler sur le relevé">
         <p className="muted-note">
-          Point de départ du calcul : ce qu'il y avait sur le compte avant la première opération saisie ici.
-          Ajuste-le pour que le solde affiché colle à ton relevé bancaire. Une valeur négative est permise,
-          elle absorbe des dépenses antérieures.
+          Saisis le solde lu sur ton relevé bancaire : l'application ajuste le point de départ du compte pour
+          retomber dessus, et absorbe au passage ce qu'elle n'a pas enregistré. Laisse vide un compte que tu ne
+          veux pas toucher.
         </p>
         {accounts.map((account) => (
           <div className="charge-row" key={account.id}>
-            <label className="charge-label" htmlFor={`opening-${account.id}`}>
-              <strong>{account.name}</strong>
+            <label className="charge-label" htmlFor={`observed-${account.id}`}>
+              <strong>{account.name}</strong> <span>départ {formatCurrency(account.openingBalance)}</span>
             </label>
             <input
               className="row-input"
-              id={`opening-${account.id}`}
+              id={`observed-${account.id}`}
               inputMode="decimal"
               onChange={(event) => {
-                setOpeningDraft((current) => ({ ...current, [account.id]: event.target.value }));
-                setOpeningSaved(false);
+                setObserved((current) => ({ ...current, [account.id]: event.target.value }));
+                setObservedSaved(false);
               }}
-              value={openingDraft[account.id] ?? ''}
+              placeholder="relevé"
+              value={observed[account.id] ?? ''}
             />
           </div>
         ))}
-        <button className="primary-button" onClick={submitOpeningBalances} type="button">
-          Enregistrer les soldes d'ouverture
+        <button className="primary-button" onClick={submitObserved} type="button">
+          Recaler les soldes
         </button>
-        {openingSaved ? (
+        {observedSaved ? (
           <p className="notice-ok" role="status">
-            Soldes d'ouverture enregistrés.
+            Soldes recalés sur le relevé.
           </p>
         ) : null}
       </Panel>

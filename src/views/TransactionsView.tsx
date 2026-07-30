@@ -91,26 +91,38 @@ export function TransactionsView({ onAddExpense, onAddOtherIncome, onDelete, onU
           transactions.map((transaction) => (
             <div className="record-card" key={transaction.id}>
               <InfoRow
-                helper={`${kindLabels[transaction.kind]} · ${formatDate(transaction.date)}`}
+                helper={`${transaction.recurringChargeId ? 'Charge fixe' : kindLabels[transaction.kind]} · ${formatDate(transaction.date)}`}
                 label={transaction.label}
                 value={formatCurrency(transaction.amount)}
               />
               {transaction.invoiceId ? (
                 <p className="muted-note">Encaissement lié à une facture, à modifier depuis la facture.</p>
               ) : (
-                <div className="button-row">
-                  <button className="secondary-button" onClick={() => edit(transaction)} type="button">Modifier</button>
-                  <button
-                    className="danger-button"
-                    onClick={() => {
-                      onDelete(transaction);
-                      if (editingId === transaction.id) reset();
-                    }}
-                    type="button"
-                  >
-                    Supprimer
-                  </button>
-                </div>
+                <>
+                  <div className="button-row">
+                    <button className="secondary-button" onClick={() => edit(transaction)} type="button">Modifier</button>
+                    {/* Une échéance de charge n'est pas supprimable : elle serait
+                        aussitôt recréée par la génération automatique. */}
+                    {transaction.recurringChargeId ? null : (
+                      <button
+                        className="danger-button"
+                        onClick={() => {
+                          onDelete(transaction);
+                          if (editingId === transaction.id) reset();
+                        }}
+                        type="button"
+                      >
+                        Supprimer
+                      </button>
+                    )}
+                  </div>
+                  {transaction.recurringChargeId ? (
+                    <p className="muted-note">
+                      Prélèvement engendré par une charge fixe. Le montant se corrige ici si le débit du mois a
+                      été différent. Pour arrêter les suivants, suspends la charge dans l’onglet Charges.
+                    </p>
+                  ) : null}
+                </>
               )}
             </div>
           ))

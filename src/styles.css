@@ -289,6 +289,17 @@ label {
   gap: 6px;
 }
 
+/* Sélecteur compact posé sur la ligne d'une charge, sans la faire grandir. */
+.row-select {
+  width: auto;
+  min-height: 26px;
+  max-width: 104px;
+  border-radius: 999px;
+  padding: 0 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
 .mini-button {
   min-height: 26px;
   border: 0;

@@ -126,6 +126,12 @@ export type Transaction = {
   fromAccountId: string | null;
   toAccountId: string | null;
   invoiceId?: string;
+  /**
+   * Charge fixe à l'origine de l'opération, quand elle a été générée
+   * automatiquement à la date de prélèvement. Sert à ne pas la regénérer, et
+   * surtout à ne pas la compter une seconde fois en dépense ponctuelle.
+   */
+  recurringChargeId?: string;
 };
 
 /** Rattachement d'une charge : elle pèse sur le compte pro ou sur le perso. */
@@ -143,6 +149,16 @@ export type RecurringCharge = {
   /** Montant mensuel, positif. */
   amount: number;
   scope: ChargeScope;
+  /**
+   * Compte réellement débité.
+   *
+   * `scope` dit la nature de la charge ; il ne dit pas d'où part l'argent. Un
+   * abonnement professionnel prélevé sur le compte personnel est le cas
+   * courant chez un auto-entrepreneur qui n'a qu'une seule carte. Confondre
+   * les deux ferait mentir les soldes. Absent, le compte se déduit du
+   * rattachement, ce qui préserve le comportement des données existantes.
+   */
+  paymentAccountId?: string | null;
   /** Jour de prélèvement, quand il est connu. */
   dayOfMonth: number | null;
   active: boolean;
@@ -195,7 +211,7 @@ export type Interaction = {
   note: string;
 };
 
-export const FINANCE_DATA_VERSION = 3;
+export const FINANCE_DATA_VERSION = 4;
 
 export type FinanceData = {
   version: typeof FINANCE_DATA_VERSION;
@@ -207,6 +223,16 @@ export type FinanceData = {
   areMonths: MonthlyAREEntry[];
   prospects: Prospect[];
   interactions: Interaction[];
+  /**
+   * Premier mois pour lequel les charges fixes ont engendré leurs opérations.
+   *
+   * Sans ce repère, activer la génération créerait d'un coup toutes les
+   * échéances depuis le début de l'historique, alors que les soldes
+   * d'ouverture les absorbent déjà : la trésorerie passée serait comptée
+   * deux fois. `null` signifie que la génération n'a pas encore démarré ;
+   * elle s'amorce alors sur le mois courant, jamais avant.
+   */
+  recurringChargeAutoPostFrom: string | null;
 };
 
 export type AccountBalance = Account & {

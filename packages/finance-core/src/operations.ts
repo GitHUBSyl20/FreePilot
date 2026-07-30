@@ -16,6 +16,7 @@ import type {
 } from './types';
 import { todayISO } from './crm/day';
 import { projectRemainingAREDays } from './monthly/cashflowSeries';
+import { chargeDebitAccountId } from './monthly/chargePosting';
 import { buildFinanceSeries, projectMonthlyOutlook } from './monthly/financeProjection';
 
 const createId = (prefix: string): string => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -35,6 +36,34 @@ export const calculateAccountBalances = (data: FinanceData): AccountBalance[] =>
 
     return { ...account, balance: Math.round(balance * 100) / 100 };
   });
+
+/** Somme des mouvements enregistrés sur un compte, hors solde d'ouverture. */
+const movementsForAccount = (data: FinanceData, accountId: string): number =>
+  data.transactions.reduce((sum, transaction) => {
+    if (transaction.fromAccountId === accountId) return sum - transaction.amount;
+    if (transaction.toAccountId === accountId) return sum + transaction.amount;
+    return sum;
+  }, 0);
+
+/**
+ * Recale un compte sur le solde lu au relevé bancaire.
+ *
+ * C'est l'inverse du solde d'ouverture, et c'est le sens dans lequel
+ * l'information existe : personne ne connaît son solde à une date passée,
+ * tout le monde a le solde du jour sous les yeux. L'ouverture s'en déduit, et
+ * absorbe au passage tout ce qui n'a pas été saisi.
+ */
+export const setObservedAccountBalance = (
+  data: FinanceData,
+  accountId: string,
+  observedBalance: number,
+): FinanceData => {
+  if (!Number.isFinite(observedBalance)) return data;
+
+  return updateAccount(data, accountId, {
+    openingBalance: observedBalance - movementsForAccount(data, accountId),
+  });
+};
 
 export const getProfessionalAccount = (data: FinanceData) =>
   data.accounts.find((account) => account.kind === 'professional') ?? data.accounts[0];
@@ -279,13 +308,20 @@ export const deleteTransaction = (data: FinanceData, transactionId: string): Fin
 
 export const addRecurringCharge = (
   data: FinanceData,
-  input: { label: string; amount: number; scope: ChargeScope; dayOfMonth?: number | null },
+  input: {
+    label: string;
+    amount: number;
+    scope: ChargeScope;
+    dayOfMonth?: number | null;
+    paymentAccountId?: string | null;
+  },
 ): FinanceData => {
   const charge: RecurringCharge = {
     id: createId('charge'),
     label: input.label.trim() || 'Charge sans libellé',
     amount: sanitizeAmount(input.amount),
     scope: input.scope,
+    paymentAccountId: input.paymentAccountId ?? null,
     dayOfMonth: input.dayOfMonth ?? null,
     active: true,
   };
@@ -296,20 +332,42 @@ export const addRecurringCharge = (
 export const updateRecurringCharge = (
   data: FinanceData,
   chargeId: string,
-  input: Partial<Pick<RecurringCharge, 'active' | 'amount' | 'dayOfMonth' | 'label' | 'scope'>>,
-): FinanceData => ({
-  ...data,
-  recurringCharges: data.recurringCharges.map((charge) => {
-    if (charge.id !== chargeId) return charge;
+  input: Partial<Pick<RecurringCharge, 'active' | 'amount' | 'dayOfMonth' | 'label' | 'paymentAccountId' | 'scope'>>,
+): FinanceData => {
+  const currentCharge = data.recurringCharges.find((charge) => charge.id === chargeId);
+  if (!currentCharge) return data;
 
-    return {
-      ...charge,
-      ...input,
-      label: input.label?.trim() || charge.label,
-      amount: input.amount === undefined ? charge.amount : sanitizeAmount(input.amount),
-    };
-  }),
-});
+  const nextCharge: RecurringCharge = {
+    ...currentCharge,
+    ...input,
+    label: input.label?.trim() || currentCharge.label,
+    amount: input.amount === undefined ? currentCharge.amount : sanitizeAmount(input.amount),
+  };
+
+  const withCharge: FinanceData = {
+    ...data,
+    recurringCharges: data.recurringCharges.map((charge) => (charge.id === chargeId ? nextCharge : charge)),
+  };
+
+  const debitAccountId = chargeDebitAccountId(withCharge, nextCharge);
+  if (debitAccountId === chargeDebitAccountId(data, currentCharge)) return withCharge;
+
+  /*
+   * Corriger le compte prélevé corrige aussi les échéances déjà posées.
+   *
+   * Une charge décrit un prélèvement permanent : l'application n'a pas de
+   * notion de « le compte a changé à telle date ». Dans la pratique, on
+   * corrige une saisie erronée, et laisser le passé sur le mauvais compte
+   * fausserait durablement les deux soldes. Pour un vrai changement de
+   * banque, mieux vaut suspendre la charge et en créer une nouvelle.
+   */
+  return {
+    ...withCharge,
+    transactions: withCharge.transactions.map((transaction) =>
+      transaction.recurringChargeId === chargeId ? { ...transaction, fromAccountId: debitAccountId } : transaction,
+    ),
+  };
+};
 
 export const deleteRecurringCharge = (data: FinanceData, chargeId: string): FinanceData => ({
   ...data,

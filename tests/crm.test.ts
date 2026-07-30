@@ -49,7 +49,8 @@ const contact = (id: string, prospectId: string, date: string): Interaction => (
  * du jour, à venir sur délai déduit, à venir sur date posée, signé et perdu.
  */
 const portfolio = (): FinanceData => ({
-  version: 3,
+  version: 4,
+  recurringChargeAutoPostFrom: null,
   settings: defaultSettings,
   accounts: [{ id: 'pro', name: 'Compte pro', kind: 'professional', openingBalance: 0 }],
   invoices: [

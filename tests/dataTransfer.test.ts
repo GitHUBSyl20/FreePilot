@@ -1,4 +1,4 @@
-import { createInitialFinanceData, needsMigration } from '@freepilot/finance-core';
+import { FINANCE_DATA_VERSION, createInitialFinanceData, needsMigration } from '@freepilot/finance-core';
 import { describe, expect, it } from 'vitest';
 import { buildExportFileName, readFinanceDataFile, serializeFinanceData } from '../src/dataTransfer';
 
@@ -14,7 +14,7 @@ describe('export des données', () => {
 
     expect(envelope.app).toBe('freepilot');
     expect(envelope.exportedAt).toBe('2026-07-27T10:00:00.000Z');
-    expect(envelope.data.version).toBe(3);
+    expect(envelope.data.version).toBe(FINANCE_DATA_VERSION);
   });
 });
 
@@ -55,7 +55,7 @@ describe('import des données', () => {
 
     const imported = await readFinanceDataFile(asFile(JSON.stringify(legacy)));
 
-    expect(imported.version).toBe(3);
+    expect(imported.version).toBe(FINANCE_DATA_VERSION);
     expect(imported.recurringCharges).toEqual([]);
     expect(imported.areMonths).toEqual([]);
     expect(imported.prospects).toEqual([]);
@@ -71,7 +71,7 @@ describe('import des données', () => {
 
     const imported = await readFinanceDataFile(asFile(JSON.stringify(legacy)));
 
-    expect(imported.version).toBe(3);
+    expect(imported.version).toBe(FINANCE_DATA_VERSION);
     expect(imported.recurringCharges).toHaveLength(2);
     expect(imported.areMonths).toHaveLength(2);
     expect(imported.prospects).toEqual([]);

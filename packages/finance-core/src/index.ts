@@ -12,6 +12,7 @@ export * from './migrate';
 export * from './crm/day';
 export * from './crm/followUps';
 export * from './monthly/cashflowSeries';
+export * from './monthly/chargePosting';
 export * from './monthly/financeProjection';
 export * from './monthly/month';
 export * from './monthly/snapshot';

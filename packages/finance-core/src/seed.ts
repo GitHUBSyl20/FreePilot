@@ -10,6 +10,9 @@ import { defaultSettings } from './dashboardMock';
 export const createInitialFinanceData = (): FinanceData => ({
   version: FINANCE_DATA_VERSION,
   settings: defaultSettings,
+  // La génération des prélèvements s'amorcera sur le mois d'ouverture, pas sur
+  // celui des données de démonstration.
+  recurringChargeAutoPostFrom: null,
   accounts: [
     { id: 'account-pro', name: 'Compte pro', kind: 'professional', openingBalance: 2500 },
     { id: 'account-personal', name: 'Compte perso', kind: 'personal', openingBalance: 800 },

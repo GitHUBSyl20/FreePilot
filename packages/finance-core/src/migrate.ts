@@ -21,6 +21,7 @@ const optionalCollections = ['recurringCharges', 'areMonths', 'prospects', 'inte
  *
  * v1 → v2 : charges récurrentes et ARE mensuelle.
  * v2 → v3 : prospects et historique des contacts.
+ * v3 → v4 : les charges fixes engendrent leurs opérations.
  */
 export const migrateFinanceData = (candidate: unknown): FinanceData => {
   if (!isRecord(candidate)) throw new Error('Données illisibles.');
@@ -47,6 +48,11 @@ export const migrateFinanceData = (candidate: unknown): FinanceData => {
     areMonths: asArray(candidate.areMonths),
     prospects: asArray(candidate.prospects),
     interactions: asArray(candidate.interactions),
+    // Volontairement laissé à null pour une sauvegarde antérieure : la
+    // génération s'amorcera sur le mois courant, sans remonter le passé que
+    // les soldes d'ouverture ont déjà absorbé.
+    recurringChargeAutoPostFrom:
+      typeof candidate.recurringChargeAutoPostFrom === 'string' ? candidate.recurringChargeAutoPostFrom : null,
   };
 };
 
@@ -62,6 +68,8 @@ export const needsMigration = (candidate: unknown): boolean => {
   if (!isRecord(candidate)) return false;
   if (candidate.version !== FINANCE_DATA_VERSION) return true;
   if (optionalCollections.some((key) => !Array.isArray(candidate[key]))) return true;
+  // `null` est une valeur valide ici : seule l'absence de la clé compte.
+  if (!('recurringChargeAutoPostFrom' in candidate)) return true;
 
   const settings = candidate.settings;
   if (!isRecord(settings)) return true;

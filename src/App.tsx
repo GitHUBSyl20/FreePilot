@@ -20,11 +20,12 @@ import {
   loadOrSeedFinanceData,
   logInteraction,
   markInvoicePaid,
+  postDueRecurringCharges,
   projectDashboard,
   resetFinanceData,
+  setObservedAccountBalance,
   summarizeCrm,
   todayISO,
-  updateAccount,
   updateInvoice,
   updateProspect,
   updateRecurringCharge,
@@ -112,6 +113,17 @@ export const App = () => {
   }, []);
 
   const cloud = useCloudSync({ data, onRemoteData: saveData });
+
+  // Les charges fixes engendrent leurs opérations dès que le mois est ouvert,
+  // y compris sur un document qui vient d'être importé ou tiré du cloud.
+  // L'opération est idempotente et renvoie les mêmes données quand tout est
+  // déjà posé : aucune boucle d'enregistrement possible.
+  useEffect(() => {
+    if (!data) return;
+
+    const posted = postDueRecurringCharges(data, currentMonth);
+    if (posted !== data) saveData(posted);
+  }, [currentMonth, data, saveData]);
 
   const projection = useMemo(() => (data ? projectDashboard(data, currentMonth) : null), [currentMonth, data]);
   const series = useMemo(() => (data ? buildFinanceSeries(data, currentMonth) : []), [currentMonth, data]);
@@ -268,15 +280,15 @@ export const App = () => {
           {financePage === 'accounts' ? (
             <AccountsView
               accounts={projection.accountBalances}
-              onTransfer={(input) => saveData(createTransfer(data, { ...input, date: today() }))}
-              onUpdateOpeningBalances={(entries) =>
+              onSetObservedBalances={(entries) =>
                 saveData(
                   entries.reduce(
-                    (current, entry) => updateAccount(current, entry.id, { openingBalance: entry.openingBalance }),
+                    (current, entry) => setObservedAccountBalance(current, entry.id, entry.observedBalance),
                     data,
                   ),
                 )
               }
+              onTransfer={(input) => saveData(createTransfer(data, { ...input, date: today() }))}
             />
           ) : null}
 
@@ -311,9 +323,13 @@ export const App = () => {
 
           {financePage === 'charges' ? (
             <RecurringChargesView
+              accounts={data.accounts}
               charges={data.recurringCharges}
               onAdd={(input) => saveData(addRecurringCharge(data, input))}
               onDelete={handleDeleteCharge}
+              onSetPaymentAccount={(charge, paymentAccountId) =>
+                saveData(updateRecurringCharge(data, charge.id, { paymentAccountId }))
+              }
               onToggle={(charge) => saveData(updateRecurringCharge(data, charge.id, { active: !charge.active }))}
               totals={projection.outlook.recurringCharges}
             />

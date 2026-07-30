@@ -4,13 +4,15 @@ import {
   calculateAccountBalances,
   defaultSettings,
   sanitizeSettings,
+  setObservedAccountBalance,
   updateAccount,
   updateSettings,
 } from '@freepilot/finance-core';
 import { describe, expect, it } from 'vitest';
 
 const data = (): FinanceData => ({
-  version: 3,
+  version: 4,
+  recurringChargeAutoPostFrom: null,
   settings: defaultSettings,
   accounts: [
     { id: 'pro', name: 'Compte pro', kind: 'professional', openingBalance: 0 },
@@ -133,5 +135,48 @@ describe('updateAccount', () => {
 
     expect(updateAccount(before, 'inexistant', { openingBalance: 500 })).toEqual(before);
     expect(updateAccount(before, 'pro', { name: '   ' }).accounts[0].name).toBe('Compte pro');
+  });
+});
+
+describe('setObservedAccountBalance', () => {
+  /** Un virement et une dépense, pour que les mouvements aillent dans les deux sens. */
+  const withMovements = (): FinanceData => ({
+    ...data(),
+    transactions: [
+      { id: 'tx-1', kind: 'transfer', label: 'Virement perso', amount: 300, date: '2026-08-02', fromAccountId: 'pro', toAccountId: 'perso' },
+      { id: 'tx-2', kind: 'expense', label: 'Loyer', amount: 700, date: '2026-08-05', fromAccountId: 'perso', toAccountId: null },
+      { id: 'tx-3', kind: 'expense', label: 'Outils', amount: 60, date: '2026-08-01', fromAccountId: 'pro', toAccountId: null },
+    ],
+  });
+
+  it('déduit le solde d’ouverture du solde lu au relevé', () => {
+    const recalibrated = setObservedAccountBalance(withMovements(), 'perso', 53.61);
+
+    // Mouvements du perso : +300 de virement − 700 de loyer = −400.
+    expect(recalibrated.accounts.find((account) => account.id === 'perso')?.openingBalance).toBe(453.61);
+  });
+
+  it('fait retomber le solde affiché exactement sur le relevé', () => {
+    const recalibrated = [
+      { id: 'pro', observed: 22 },
+      { id: 'perso', observed: 53.61 },
+    ].reduce((current, entry) => setObservedAccountBalance(current, entry.id, entry.observed), withMovements());
+    const balances = calculateAccountBalances(recalibrated);
+
+    expect(balances.find((account) => account.id === 'pro')?.balance).toBe(22);
+    expect(balances.find((account) => account.id === 'perso')?.balance).toBe(53.61);
+  });
+
+  it('ne bouge plus au second recalage sur la même valeur', () => {
+    const once = setObservedAccountBalance(withMovements(), 'perso', 53.61);
+    const twice = setObservedAccountBalance(once, 'perso', 53.61);
+
+    expect(twice.accounts).toEqual(once.accounts);
+  });
+
+  it('ignore une valeur illisible', () => {
+    const before = withMovements();
+
+    expect(setObservedAccountBalance(before, 'perso', Number.NaN)).toBe(before);
   });
 });

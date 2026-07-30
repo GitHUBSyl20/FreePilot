@@ -33,10 +33,22 @@ export const collectedRevenueForMonth = (data: FinanceData, month: string): numb
       .reduce((total, invoice) => total + safeNumber(invoice.totalTTC), 0),
   );
 
+/**
+ * Dépenses ponctuelles du mois, hors charges fixes.
+ *
+ * Les opérations engendrées par une charge fixe sont exclues : elles sont déjà
+ * portées par `recurringCharges`, et les compter ici les ferait peser deux
+ * fois sur le reste à vivre.
+ */
 export const variableExpensesForMonth = (data: FinanceData, month: string): number =>
   roundCurrency(
     data.transactions
-      .filter((transaction) => transaction.kind === 'expense' && transaction.date.startsWith(month))
+      .filter(
+        (transaction) =>
+          transaction.kind === 'expense' &&
+          transaction.recurringChargeId === undefined &&
+          transaction.date.startsWith(month),
+      )
       .reduce((total, transaction) => total + safeNumber(transaction.amount), 0),
   );
 
