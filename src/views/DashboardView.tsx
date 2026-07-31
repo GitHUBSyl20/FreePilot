@@ -64,7 +64,7 @@ export function DashboardView({ projection, settings, onAddExpense, onAddInvoice
           />
         </Panel>
 
-        <Panel title="Détail du mois">
+        <Panel collapsible title="Détail du mois">
           <InfoRow label="Urssaf provisionnée" helper={`Payable en ${formatMonthLabel(outlook.cashflow.urssafPaymentMonth).toLowerCase()}`} value={formatCurrency(outlook.cashflow.urssafProvision.value)} />
           <InfoRow label="Impôt provisionné" helper="11 % du revenu après abattement" value={formatCurrency(outlook.cashflow.incomeTaxProvision.value)} />
           <InfoRow label="Charges fixes pro" value={formatCurrency(outlook.recurringCharges.professional)} />
@@ -80,13 +80,13 @@ export function DashboardView({ projection, settings, onAddExpense, onAddInvoice
           <InfoRow label="Jours ARE consommés" helper="Sur l’ARE réellement versée" value={formatDays(outlook.cashflow.areDaysConsumed)} />
         </Panel>
 
-        <Panel title="Comptes">
+        <Panel collapsible title="Comptes">
           {projection.accountBalances.map((account) => (
             <InfoRow helper={account.kind} key={account.id} label={account.name} value={formatCurrency(account.balance)} />
           ))}
         </Panel>
 
-        <Panel title="Dernières opérations">
+        <Panel collapsible title="Dernières opérations">
           {projection.recentTransactions.length === 0 ? (
             <EmptyState>Aucune opération enregistrée.</EmptyState>
           ) : (

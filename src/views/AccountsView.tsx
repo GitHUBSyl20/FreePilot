@@ -54,7 +54,7 @@ export function AccountsView({ accounts, onSetObservedBalances, onTransfer }: Pr
         ))}
       </Panel>
 
-      <Panel title="Recaler sur le relevé">
+      <Panel collapsible title="Recaler sur le relevé">
         <p className="muted-note">
           Saisis le solde lu sur ton relevé bancaire : l'application ajuste le point de départ du compte pour
           retomber dessus, et absorbe au passage ce qu'elle n'a pas enregistré. Laisse vide un compte que tu ne
@@ -88,7 +88,7 @@ export function AccountsView({ accounts, onSetObservedBalances, onTransfer }: Pr
         ) : null}
       </Panel>
 
-      <Panel title="Virement entre comptes">
+      <Panel collapsible title="Virement entre comptes">
         <label htmlFor="transfer-from">Depuis</label>
         <select id="transfer-from" onChange={(event) => setFromAccountId(event.target.value)} value={fromAccountId}>
           {accounts.map((account) => (

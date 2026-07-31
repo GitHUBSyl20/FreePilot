@@ -106,7 +106,7 @@ export function InvoicesView({
         </div>
       </Panel>
 
-      <Panel title="Factures">
+      <Panel collapsible title="Factures">
         {invoices.length === 0 ? (
           <EmptyState>Aucune facture enregistrée.</EmptyState>
         ) : (

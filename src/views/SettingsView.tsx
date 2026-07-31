@@ -30,6 +30,8 @@ type Field = {
 type Group = {
   title: string;
   fields: Field[];
+  /** Les deux groupes les plus longs se replient ; les courts n'y gagneraient rien. */
+  collapsible?: boolean;
 };
 
 /**
@@ -40,6 +42,7 @@ type Group = {
 const groups: Group[] = [
   {
     title: 'Allocation ARE',
+    collapsible: true,
     fields: [
       { key: 'areDailyAmount', label: 'Montant journalier (€)', helper: 'Le journalier notifié par France Travail.' },
       { key: 'theoreticalMonthlyDays', label: 'Jours indemnisés par mois' },
@@ -62,6 +65,7 @@ const groups: Group[] = [
   },
   {
     title: 'Micro-BNC',
+    collapsible: true,
     fields: [
       { key: 'bncAbatementRate', label: 'Abattement forfaitaire (%)' },
       { key: 'urssafSocialContributionRate', label: 'Cotisations sociales (%)' },
@@ -166,7 +170,7 @@ export function SettingsView({ onSave, settings }: Props) {
       </Panel>
 
       {groups.map((group) => (
-        <Panel key={group.title} title={group.title}>
+        <Panel collapsible={group.collapsible} key={group.title} title={group.title}>
           {group.title === 'Micro-BNC' ? (
             <>
               <label htmlFor="setting-liberatoire">Versement libératoire</label>

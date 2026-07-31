@@ -84,7 +84,7 @@ export function TransactionsView({ onAddExpense, onAddOtherIncome, onDelete, onU
         </p>
       </Panel>
 
-      <Panel title="Historique">
+      <Panel collapsible title="Historique">
         {/* Les règles valent pour toute la liste : les répéter sous chaque ligne
             allongeait l'écran d'une page entière dès qu'il y avait des charges. */}
         <p className="muted-note">

@@ -168,7 +168,7 @@ export function RecurringChargesView({
         </div>
       </Panel>
 
-      <Panel title="Charges enregistrées">
+      <Panel collapsible title="Charges enregistrées">
         {charges.length === 0 ? (
           <EmptyState>Aucune charge fixe enregistrée.</EmptyState>
         ) : (

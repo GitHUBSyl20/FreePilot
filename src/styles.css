@@ -71,6 +71,51 @@ h2 {
   letter-spacing: -0.02em;
 }
 
+/* La zone de clic couvre toute la largeur du titre : viser la flèche au pouce
+   sur un téléphone demanderait une précision que ce geste ne mérite pas. */
+.panel-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  background: none;
+  cursor: pointer;
+}
+
+.panel-chevron {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  color: #4263eb;
+  transition: transform 160ms ease;
+}
+
+/* Flèche vers le bas quand le contenu est caché, vers le haut quand il est
+   déployé : elle montre où va le contenu, pas où il est. Le tracé pointe vers
+   le bas au repos, c'est donc l'état déployé qui tourne. */
+.panel:not(.collapsed) .panel-chevron {
+  transform: rotate(180deg);
+}
+
+/* Plié, le titre est tout le panneau : la marge sous lui creuserait un vide. */
+.panel.collapsed h2 {
+  margin-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-chevron {
+    transition: none;
+  }
+}
+
 .eyebrow {
   margin: 0 0 4px;
   color: #4263eb;
