@@ -56,6 +56,12 @@ relancer le serveur, ouvrir **Réglages > Cloud**.
 lit les variables qu'au démarrage.
 
 - *Attendu* : « Déconnecté » et le formulaire de connexion.
+- *Piège* : `VITE_SUPABASE_URL` doit s'arrêter au domaine du projet,
+  `https://<ref>.supabase.co`, sans chemin ni barre finale. Le tableau de bord
+  met en évidence l'URL de l'API REST, qui finit par `/rest/v1/` : la copier
+  fait échouer la connexion sur « Invalid path specified in request URL », un
+  message qui ressemble à un refus d'identifiants alors que la requête n'a
+  jamais atteint l'authentification.
 
 ## B. Authentification
 

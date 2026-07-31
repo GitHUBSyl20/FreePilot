@@ -14,6 +14,12 @@ export const translateCloudError = (message: string): string => {
   const normalized = message.toLowerCase();
 
   if (normalized.includes('invalid login credentials')) return 'Adresse ou mot de passe incorrect.';
+  // Le tableau de bord Supabase met l'URL de l'API REST en évidence, et c'est
+  // celle-là qu'on copie naturellement. Le SDK ajoute son propre chemin par
+  // dessus : la requête n'atteint jamais l'authentification, et l'échec se lit
+  // comme un refus de connexion alors que rien n'est encore parti.
+  if (normalized.includes('invalid path specified'))
+    return "URL du projet Supabase incorrecte : elle doit s'arrêter à « .supabase.co », sans /rest/v1 ni barre finale.";
   if (normalized.includes('email not confirmed')) return "Adresse non confirmée : ouvre le message reçu par courriel.";
   if (normalized.includes('email logins are disabled')) return 'La connexion par mot de passe est désactivée sur le projet Supabase.';
   if (normalized.includes('failed to fetch') || normalized.includes('networkerror')) return 'Serveur injoignable : vérifie ta connexion.';
