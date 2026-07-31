@@ -20,6 +20,18 @@ export const formatMonthLabel = (month: string): string => {
   return label.charAt(0).toUpperCase() + label.slice(1);
 };
 
+/**
+ * '2026-07' -> 'de juillet 2026', '2026-08' -> 'd’août 2026'
+ *
+ * Avril, août et octobre commencent par une voyelle et imposent l'élision.
+ * Composer « de » + le libellé donne « de août », qui saute aux yeux dans une
+ * phrase par ailleurs soignée.
+ */
+export const formatMonthComplement = (month: string): string => {
+  const label = formatMonthLabel(month).toLowerCase();
+  return /^[aeiou]/.test(label) ? `d’${label}` : `de ${label}`;
+};
+
 /** '2026-07-27' -> '27 juillet 2026' */
 export const formatDate = (day: string): string => {
   const [year, month, dayOfMonth] = day.split('-').map(Number);

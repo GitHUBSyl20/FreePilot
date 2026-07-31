@@ -119,6 +119,7 @@ export const projectMonthlyOutlook = (data: FinanceData, month: string): Monthly
   const series = buildFinanceSeries(data, month);
   const cashflow = series.find((entry) => entry.month === month) ?? series[series.length - 1];
   const nextCashflow = series.find((entry) => entry.month === addMonths(month, 1));
+  const nextARE = nextCashflow?.theoreticalARE;
 
   const recurringCharges = sumRecurringCharges(data.recurringCharges);
   const variableExpenses = variableExpensesForMonth(data, month);
@@ -153,6 +154,9 @@ export const projectMonthlyOutlook = (data: FinanceData, month: string): Monthly
       warnings: resteAVivreValue < 0 ? ['Le mois ne couvre pas les charges.'] : [],
     },
     areCutoff: calculateARECutoff(data.settings, areEntry ? areEntry.fullMonthlyARE : undefined),
-    nextMonthARE: nextCashflow?.theoreticalARE.value ?? 0,
+    // Le moteur signale déjà l'ARE pleine manquante par un avertissement : on
+    // s'appuie dessus plutôt que de redire la règle ici, sinon les deux
+    // finiraient par diverger.
+    nextMonthARE: nextARE && nextARE.warnings.length === 0 ? nextARE.value : null,
   };
 };

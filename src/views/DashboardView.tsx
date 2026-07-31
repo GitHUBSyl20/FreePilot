@@ -1,6 +1,7 @@
 import type { AppSettings, DashboardProjection } from '@freepilot/finance-core';
+import { addMonths } from '@freepilot/finance-core';
 import { EmptyState, InfoRow, Panel } from '../components/Panel';
-import { formatCurrency, formatDate, formatDays, formatMonthLabel } from '../format';
+import { formatCurrency, formatDate, formatDays, formatMonthComplement, formatMonthLabel } from '../format';
 
 type Props = {
   projection: DashboardProjection;
@@ -12,12 +13,20 @@ type Props = {
 export function DashboardView({ projection, settings, onAddExpense, onAddInvoice }: Props) {
   const { kpis, outlook } = projection;
   const missingARE = outlook.cashflow.theoreticalARE.warnings.length > 0;
+  const nextMonth = addMonths(projection.month, 1);
 
   const indicators = [
     { label: 'CA encaissé', value: formatCurrency(kpis.caEncaisse), helper: 'Factures payées ce mois-ci' },
     { label: 'Factures à encaisser', value: formatCurrency(kpis.facturesImpayees), helper: 'Émises, pas encore payées' },
     { label: 'ARE du mois', value: formatCurrency(kpis.areDuMois), helper: 'Versée si connue, sinon estimée' },
-    { label: 'ARE estimée M+1', value: formatCurrency(kpis.areEstimeeM1), helper: 'Après déduction du CA de ce mois' },
+    {
+      label: 'ARE estimée M+1',
+      value: kpis.areEstimeeM1 === null ? 'À renseigner' : formatCurrency(kpis.areEstimeeM1),
+      helper:
+        kpis.areEstimeeM1 === null
+          ? `ARE pleine ${formatMonthComplement(nextMonth)} non saisie, onglet ARE`
+          : 'Après déduction du CA de ce mois',
+    },
     { label: 'Trésorerie du mois', value: formatCurrency(kpis.netFinal), helper: 'CA − Urssaf + ARE' },
     { label: 'Charges fixes', value: formatCurrency(kpis.chargesFixes), helper: 'Pro et perso confondues' },
     { label: 'Seuil coupure ARE', value: formatCurrency(kpis.seuilCoupureARE), helper: 'CA encaissé avant ARE à 0 €' },

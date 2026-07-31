@@ -258,8 +258,13 @@ export type MonthlyOutlook = {
   resteAVivre: CalculationDetail;
   /** CA à partir duquel l'ARE du mois suivant tombe à zéro. */
   areCutoff: CalculationDetail;
-  /** ARE théorique du mois suivant, compte tenu du CA encaissé ce mois-ci. */
-  nextMonthARE: number;
+  /**
+   * ARE théorique du mois suivant, compte tenu du CA encaissé ce mois-ci, ou
+   * `null` tant que son ARE pleine n'est pas saisie. La distinction compte :
+   * une ARE pleine absente vaut zéro dans le calcul, et un zéro affiché comme
+   * un montant se lit comme un mois sans allocation.
+   */
+  nextMonthARE: number | null;
 };
 
 export type DashboardProjection = {
@@ -268,7 +273,8 @@ export type DashboardProjection = {
     caEncaisse: number;
     facturesImpayees: number;
     areDuMois: number;
-    areEstimeeM1: number;
+    /** `null` tant que l'ARE pleine du mois suivant n'est pas renseignée. */
+    areEstimeeM1: number | null;
     netFinal: number;
     chargesFixes: number;
     resteAVivre: number;

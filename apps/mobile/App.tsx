@@ -307,11 +307,25 @@ function DashboardScreen({
   onAddInvoice: () => void;
   recentTransactions: Transaction[];
 }) {
+  // Les valeurs sont mises en forme ici : l'ARE M+1 peut ne pas être un
+  // montant, et un formateur monétaire n'a rien à dire d'une donnée absente.
   const secondaryKpis = [
-    { label: 'CA encaissé', value: kpis.caEncaisse, helper: 'Paiements reçus ce mois-ci' },
-    { label: 'Factures à encaisser', value: kpis.facturesImpayees, helper: `${invoices.length} facture(s) ouvertes` },
-    { label: 'ARE estimée M+1', value: kpis.areEstimeeM1, helper: 'Après déduction France Travail' },
-    { label: 'Seuil coupure ARE', value: kpis.seuilCoupureARE, helper: 'CA encaissé avant ARE à 0 €' },
+    { label: 'CA encaissé', value: currencyFormatter.format(kpis.caEncaisse), helper: 'Paiements reçus ce mois-ci' },
+    {
+      label: 'Factures à encaisser',
+      value: currencyFormatter.format(kpis.facturesImpayees),
+      helper: `${invoices.length} facture(s) ouvertes`,
+    },
+    {
+      label: 'ARE estimée M+1',
+      value: kpis.areEstimeeM1 === null ? 'À renseigner' : currencyFormatter.format(kpis.areEstimeeM1),
+      helper: kpis.areEstimeeM1 === null ? 'ARE pleine du mois suivant non saisie' : 'Après déduction France Travail',
+    },
+    {
+      label: 'Seuil coupure ARE',
+      value: currencyFormatter.format(kpis.seuilCoupureARE),
+      helper: 'CA encaissé avant ARE à 0 €',
+    },
   ];
 
   return (
@@ -338,7 +352,7 @@ function DashboardScreen({
               <Text style={styles.kpiLabel}>{kpi.label}</Text>
               <Text style={styles.kpiHelper}>{kpi.helper}</Text>
             </View>
-            <Text style={styles.kpiValue}>{currencyFormatter.format(kpi.value)}</Text>
+            <Text style={styles.kpiValue}>{kpi.value}</Text>
           </View>
         ))}
       </View>

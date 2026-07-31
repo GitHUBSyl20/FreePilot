@@ -134,6 +134,19 @@ describe('projection mensuelle', () => {
     expect(outlook.nextMonthARE).toBe(1046.4);
   });
 
+  it('ne projette rien tant que l’ARE pleine du mois suivant n’est pas saisie', () => {
+    const data = scenario();
+    // Juillet retiré : la déduction de juin s'imputerait sur une ARE pleine
+    // inconnue, et le calcul produirait un zéro qui se lit comme une prévision
+    // de mois sans allocation.
+    data.areMonths = data.areMonths.filter((entry) => entry.month !== '2026-07');
+
+    const blind = projectMonthlyOutlook(data, '2026-06');
+
+    expect(blind.nextMonthARE).toBeNull();
+    expect(projectDashboard(data, '2026-06').kpis.areEstimeeM1).toBeNull();
+  });
+
   it('calcule le seuil de coupure sur l’ARE pleine du mois suivant', () => {
     expect(outlook.areCutoff.value).toBeCloseTo(3064.94, 2);
   });
