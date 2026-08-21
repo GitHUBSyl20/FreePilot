@@ -3,7 +3,13 @@ import { useState } from 'react';
 import { EmptyState, InfoRow, Panel } from '../components/Panel';
 import { formatCurrency, formatDate, parseAmount, today } from '../format';
 
-type InvoiceInput = { clientName: string; totalTTC: number; prospectId: string | null; paymentDate?: string };
+type InvoiceInput = {
+  clientName: string;
+  totalTTC: number;
+  prospectId: string | null;
+  issueDate?: string;
+  paymentDate?: string;
+};
 
 type Props = {
   invoices: EditableInvoice[];
@@ -43,6 +49,7 @@ export function InvoicesView({
   const [clientName, setClientName] = useState('');
   const [amount, setAmount] = useState('');
   const [prospectId, setProspectId] = useState('');
+  const [issueDate, setIssueDate] = useState(today());
   const [paymentDate, setPaymentDate] = useState('');
   // Facture en cours de marquage « payée » : on demande la date réelle
   // d'encaissement au lieu de forcer la date du jour, sinon impossible de
@@ -58,6 +65,7 @@ export function InvoicesView({
     setClientName('');
     setAmount('');
     setProspectId('');
+    setIssueDate(today());
     setPaymentDate('');
   };
 
@@ -65,7 +73,7 @@ export function InvoicesView({
     const parsedAmount = parseAmount(amount);
     if (!parsedAmount) return;
 
-    const input: InvoiceInput = { clientName, totalTTC: parsedAmount, prospectId: prospectId || null };
+    const input: InvoiceInput = { clientName, totalTTC: parsedAmount, prospectId: prospectId || null, issueDate };
     if (editingId) onUpdate(editingId, paymentDate ? { ...input, paymentDate } : input);
     else onCreate(input);
 
@@ -77,6 +85,7 @@ export function InvoicesView({
     setClientName(invoice.clientName);
     setAmount(String(invoice.totalTTC));
     setProspectId(invoice.prospectId ?? '');
+    setIssueDate(invoice.issueDate);
     setPaymentDate(invoice.status === 'paid' ? invoice.paymentDate ?? '' : '');
   };
 
@@ -101,6 +110,13 @@ export function InvoicesView({
       <Panel title={editingId ? 'Modifier la facture' : 'Nouvelle facture'}>
         <input onChange={(event) => setClientName(event.target.value)} placeholder="Client" value={clientName} />
         <input inputMode="decimal" onChange={(event) => setAmount(event.target.value)} placeholder="Montant TTC" value={amount} />
+        <label htmlFor="invoice-issue-date">Date de facturation</label>
+        <input
+          id="invoice-issue-date"
+          onChange={(event) => setIssueDate(event.target.value)}
+          type="date"
+          value={issueDate}
+        />
         {prospects.length > 0 ? (
           <>
             <label htmlFor="invoice-prospect">Prospect du CRM (optionnel)</label>

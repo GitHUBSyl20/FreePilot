@@ -296,7 +296,7 @@ export const App = () => {
             <InvoicesView
               canMarkPaid={Boolean(professionalAccountId)}
               invoices={data.invoices}
-              onCreate={(input) => saveData(addInvoice(data, { ...input, issueDate: today() }))}
+              onCreate={(input) => saveData(addInvoice(data, { ...input, issueDate: input.issueDate ?? today() }))}
               onDelete={handleDeleteInvoice}
               onMarkPaid={(invoice, paymentDate) =>
                 saveData(markInvoicePaid(data, invoice.id, { paymentDate, accountId: professionalAccountId }))
