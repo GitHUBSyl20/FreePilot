@@ -298,8 +298,8 @@ export const App = () => {
               invoices={data.invoices}
               onCreate={(input) => saveData(addInvoice(data, { ...input, issueDate: today() }))}
               onDelete={handleDeleteInvoice}
-              onMarkPaid={(invoice) =>
-                saveData(markInvoicePaid(data, invoice.id, { paymentDate: today(), accountId: professionalAccountId }))
+              onMarkPaid={(invoice, paymentDate) =>
+                saveData(markInvoicePaid(data, invoice.id, { paymentDate, accountId: professionalAccountId }))
               }
               onMarkSent={(invoice) => saveData(updateInvoice(data, invoice.id, { status: 'sent' }))}
               onUpdate={(invoiceId, input) => saveData(updateInvoice(data, invoiceId, input))}

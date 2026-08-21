@@ -1,9 +1,9 @@
 import type { EditableInvoice, Prospect } from '@freepilot/finance-core';
 import { useState } from 'react';
 import { EmptyState, InfoRow, Panel } from '../components/Panel';
-import { formatCurrency, formatDate, parseAmount } from '../format';
+import { formatCurrency, formatDate, parseAmount, today } from '../format';
 
-type InvoiceInput = { clientName: string; totalTTC: number; prospectId: string | null };
+type InvoiceInput = { clientName: string; totalTTC: number; prospectId: string | null; paymentDate?: string };
 
 type Props = {
   invoices: EditableInvoice[];
@@ -12,7 +12,7 @@ type Props = {
   onCreate: (input: InvoiceInput) => void;
   onUpdate: (invoiceId: string, input: InvoiceInput) => void;
   onDelete: (invoice: EditableInvoice) => void;
-  onMarkPaid: (invoice: EditableInvoice) => void;
+  onMarkPaid: (invoice: EditableInvoice, paymentDate: string) => void;
   onMarkSent: (invoice: EditableInvoice) => void;
 };
 
@@ -43,6 +43,12 @@ export function InvoicesView({
   const [clientName, setClientName] = useState('');
   const [amount, setAmount] = useState('');
   const [prospectId, setProspectId] = useState('');
+  const [paymentDate, setPaymentDate] = useState('');
+  // Facture en cours de marquage « payée » : on demande la date réelle
+  // d'encaissement au lieu de forcer la date du jour, sinon impossible de
+  // rattacher un paiement tardif au bon mois (déduction ARE, CA du mois...).
+  const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
+  const [markingPaidDate, setMarkingPaidDate] = useState(today());
 
   const prospectName = (id: string | null | undefined): string | null =>
     prospects.find((prospect) => prospect.id === id)?.name ?? null;
@@ -52,6 +58,7 @@ export function InvoicesView({
     setClientName('');
     setAmount('');
     setProspectId('');
+    setPaymentDate('');
   };
 
   const submit = () => {
@@ -59,7 +66,7 @@ export function InvoicesView({
     if (!parsedAmount) return;
 
     const input: InvoiceInput = { clientName, totalTTC: parsedAmount, prospectId: prospectId || null };
-    if (editingId) onUpdate(editingId, input);
+    if (editingId) onUpdate(editingId, paymentDate ? { ...input, paymentDate } : input);
     else onCreate(input);
 
     reset();
@@ -70,6 +77,17 @@ export function InvoicesView({
     setClientName(invoice.clientName);
     setAmount(String(invoice.totalTTC));
     setProspectId(invoice.prospectId ?? '');
+    setPaymentDate(invoice.status === 'paid' ? invoice.paymentDate ?? '' : '');
+  };
+
+  const startMarkPaid = (invoice: EditableInvoice) => {
+    setMarkingPaidId(invoice.id);
+    setMarkingPaidDate(today());
+  };
+
+  const confirmMarkPaid = (invoice: EditableInvoice) => {
+    onMarkPaid(invoice, markingPaidDate);
+    setMarkingPaidId(null);
   };
 
   // Rattacher un prospect renseigne le nom du client tant qu'il est vide.
@@ -94,6 +112,17 @@ export function InvoicesView({
                 </option>
               ))}
             </select>
+          </>
+        ) : null}
+        {editingId && paymentDate !== '' ? (
+          <>
+            <label htmlFor="invoice-payment-date">Date d’encaissement</label>
+            <input
+              id="invoice-payment-date"
+              onChange={(event) => setPaymentDate(event.target.value)}
+              type="date"
+              value={paymentDate}
+            />
           </>
         ) : null}
         <div className="button-row">
@@ -129,15 +158,41 @@ export function InvoicesView({
                     Émise
                   </button>
                 ) : null}
-                {invoice.status !== 'paid' && canMarkPaid ? (
+                {invoice.status !== 'paid' && canMarkPaid && markingPaidId !== invoice.id ? (
                   <button
                     aria-label={`Marquer payée la facture ${invoice.clientName}`}
                     className="mini-button"
-                    onClick={() => onMarkPaid(invoice)}
+                    onClick={() => startMarkPaid(invoice)}
                     type="button"
                   >
                     Payée
                   </button>
+                ) : null}
+                {markingPaidId === invoice.id ? (
+                  <>
+                    <input
+                      aria-label={`Date d’encaissement de ${invoice.clientName}`}
+                      onChange={(event) => setMarkingPaidDate(event.target.value)}
+                      type="date"
+                      value={markingPaidDate}
+                    />
+                    <button
+                      aria-label={`Confirmer le paiement de ${invoice.clientName}`}
+                      className="mini-button"
+                      onClick={() => confirmMarkPaid(invoice)}
+                      type="button"
+                    >
+                      Confirmer
+                    </button>
+                    <button
+                      aria-label={`Annuler le paiement de ${invoice.clientName}`}
+                      className="mini-button"
+                      onClick={() => setMarkingPaidId(null)}
+                      type="button"
+                    >
+                      Annuler
+                    </button>
+                  </>
                 ) : null}
                 <button
                   aria-label={`Modifier la facture ${invoice.clientName}`}
