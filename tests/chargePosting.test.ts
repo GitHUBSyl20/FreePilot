@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest';
  * et une suspendue, qui ne doit jamais engendrer d'échéance.
  */
 const scenario = (overrides: Partial<FinanceData> = {}): FinanceData => ({
-  version: 4,
+  version: 5,
   recurringChargeAutoPostFrom: null,
   settings: defaultSettings,
   accounts: [
@@ -33,6 +33,9 @@ const scenario = (overrides: Partial<FinanceData> = {}): FinanceData => ({
   areMonths: [{ month: '2026-08', fullMonthlyARE: 1416, actualARE: null }],
   prospects: [],
   interactions: [],
+  opportunities: [],
+  stageChanges: [],
+  tasks: [],
   ...overrides,
 });
 

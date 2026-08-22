@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 
 /** Document minimal : la synchro ne regarde pas le contenu métier. */
 const document = (): FinanceData => ({
-  version: 4,
+  version: 5,
   recurringChargeAutoPostFrom: null,
   settings: defaultSettings,
   accounts: [{ id: 'pro', name: 'Compte pro', kind: 'professional', openingBalance: 0 }],
@@ -32,6 +32,9 @@ const document = (): FinanceData => ({
   areMonths: [{ month: '2026-06', fullMonthlyARE: 1416, actualARE: 552 }],
   prospects: [],
   interactions: [],
+  opportunities: [],
+  stageChanges: [],
+  tasks: [],
 });
 
 const header = (overrides: Partial<RemoteDocumentHeader> = {}): RemoteDocumentHeader => ({
@@ -52,6 +55,9 @@ describe('fingerprintFinanceData', () => {
   it("ne dépend pas de l'ordre des clés", () => {
     const data = document();
     const reordered = {
+      tasks: data.tasks,
+      stageChanges: data.stageChanges,
+      opportunities: data.opportunities,
       interactions: data.interactions,
       prospects: data.prospects,
       areMonths: data.areMonths,

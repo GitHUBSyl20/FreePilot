@@ -111,6 +111,50 @@ describe('import des données', () => {
     expect(imported.settings.areDailyAmount).toBe(base.settings.areDailyAmount);
   });
 
+  it('reprend les prospects signés en opportunités gagnées à la migration v4 → v5', async () => {
+    const base = createInitialFinanceData();
+    const {
+      opportunities: _opportunities,
+      stageChanges: _stageChanges,
+      tasks: _tasks,
+      ...v4
+    } = base;
+    // Un prospect actif avec une relance déjà planifiée, pour couvrir aussi
+    // la reprise en tâche.
+    const legacy = {
+      ...v4,
+      version: 4,
+      prospects: v4.prospects.map((prospect) =>
+        prospect.id === 'prospect-002' ? { ...prospect, nextFollowUpDate: '2026-06-15' } : prospect,
+      ),
+    };
+
+    const imported = await readFinanceDataFile(asFile(JSON.stringify(legacy)));
+
+    expect(imported.version).toBe(FINANCE_DATA_VERSION);
+    expect(imported.opportunities).toHaveLength(1);
+    const [migrated] = imported.opportunities;
+    expect(migrated.prospectId).toBe('prospect-001');
+    expect(migrated.status).toBe('won');
+    // Le CA repris vient des factures payées, jamais d'un montant inventé.
+    expect(migrated.amount).toBe(1200);
+    expect(migrated.originEvent).toMatch(/à vérifier/);
+
+    expect(imported.tasks).toHaveLength(1);
+    expect(imported.tasks[0]).toMatchObject({ prospectId: 'prospect-002', dueDate: '2026-06-15', status: 'open' });
+    expect(imported.stageChanges).toEqual([]);
+  });
+
+  it('ne régénère pas la reprise sur un document déjà en v5, même vide', async () => {
+    const base = createInitialFinanceData();
+    const alreadyV5 = { ...base, opportunities: [], stageChanges: [], tasks: [] };
+
+    const imported = await readFinanceDataFile(asFile(JSON.stringify(alreadyV5)));
+
+    expect(imported.opportunities).toEqual([]);
+    expect(imported.tasks).toEqual([]);
+  });
+
   it('refuse un fichier dont une collection est manquante', async () => {
     const { invoices: _removed, ...withoutInvoices } = createInitialFinanceData();
 

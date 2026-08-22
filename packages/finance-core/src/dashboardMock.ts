@@ -1,5 +1,6 @@
 import type { AppSettings } from './types';
 import { calculateARECutoff } from './calculations/are';
+import { defaultStageProbabilities } from './crm/pipelines';
 import { calculateMonthlySnapshot } from './monthly/snapshot';
 
 export const defaultSettings: AppSettings = {
@@ -19,6 +20,9 @@ export const defaultSettings: AppSettings = {
   hotProspectFollowUpDays: 7,
   warmProspectFollowUpDays: 21,
   coldProspectFollowUpDays: 60,
+  dormantOpportunityDays: 14,
+  dormantPartnershipDays: 30,
+  stageProbabilities: defaultStageProbabilities(),
 };
 
 export const getDashboardMock = () => {

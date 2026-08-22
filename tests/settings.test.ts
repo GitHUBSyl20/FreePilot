@@ -11,7 +11,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 const data = (): FinanceData => ({
-  version: 4,
+  version: 5,
   recurringChargeAutoPostFrom: null,
   settings: defaultSettings,
   accounts: [
@@ -26,6 +26,9 @@ const data = (): FinanceData => ({
   areMonths: [],
   prospects: [],
   interactions: [],
+  opportunities: [],
+  stageChanges: [],
+  tasks: [],
 });
 
 describe('sanitizeSettings', () => {

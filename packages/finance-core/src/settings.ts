@@ -1,4 +1,5 @@
 import type { AppSettings, FinanceData } from './types';
+import { PIPELINE_STAGES, stageProbabilityKey } from './crm/pipelines';
 
 /** Nature d'un réglage, pour le présenter et le borner correctement. */
 export type SettingKind = 'rate' | 'currency' | 'days';
@@ -10,8 +11,14 @@ export type SettingRule = {
   integer?: boolean;
 };
 
-/** Tous les réglages sauf l'unique booléen. */
-export type NumericSettingKey = Exclude<keyof AppSettings, 'versementLiberatoireEnabled'>;
+/**
+ * Tous les réglages scalaires, sauf l'unique booléen et `stageProbabilities`.
+ *
+ * `stageProbabilities` est une map imbriquée (une probabilité par stade et
+ * par pipeline) : elle ne rentre pas dans une règle min/max simple et suit sa
+ * propre validation ci-dessous.
+ */
+export type NumericSettingKey = Exclude<keyof AppSettings, 'stageProbabilities' | 'versementLiberatoireEnabled'>;
 
 /**
  * Bornes de saisie de chaque réglage.
@@ -39,6 +46,33 @@ export const settingRules: Record<NumericSettingKey, SettingRule> = {
   hotProspectFollowUpDays: { kind: 'days', min: 1, max: 365, integer: true },
   warmProspectFollowUpDays: { kind: 'days', min: 1, max: 365, integer: true },
   coldProspectFollowUpDays: { kind: 'days', min: 1, max: 365, integer: true },
+  dormantOpportunityDays: { kind: 'days', min: 1, max: 365, integer: true },
+  dormantPartnershipDays: { kind: 'days', min: 1, max: 365, integer: true },
+};
+
+/** Clés valides de `stageProbabilities` : un stade connu de `pipelines.ts`. */
+const knownStageProbabilityKeys = new Set(
+  PIPELINE_STAGES.map((stage) => stageProbabilityKey(stage.pipeline, stage.id)),
+);
+
+/**
+ * Une probabilité par stade et par pipeline, bornée à 0–100. Une clé inconnue
+ * (stade renommé, faute de frappe venue d'un import) est ignorée plutôt que
+ * stockée : elle ne correspondrait à aucun stade affiché nulle part.
+ */
+const sanitizeStageProbabilities = (
+  current: Record<string, number>,
+  patch: Record<string, number>,
+): Record<string, number> => {
+  const next = { ...current };
+
+  for (const [key, value] of Object.entries(patch)) {
+    if (!knownStageProbabilityKeys.has(key)) continue;
+    if (typeof value !== 'number' || !Number.isFinite(value)) continue;
+    next[key] = Math.min(100, Math.max(0, Math.round(value)));
+  }
+
+  return next;
 };
 
 const roundTo2 = (value: number): number => Math.round(value * 100) / 100;
@@ -69,6 +103,10 @@ export const sanitizeSettings = (current: AppSettings, patch: Partial<AppSetting
 
   if (typeof patch.versementLiberatoireEnabled === 'boolean') {
     next.versementLiberatoireEnabled = patch.versementLiberatoireEnabled;
+  }
+
+  if (patch.stageProbabilities) {
+    next.stageProbabilities = sanitizeStageProbabilities(current.stageProbabilities, patch.stageProbabilities);
   }
 
   // Le total Urssaf n'est pas un réglage indépendant : c'est lui seul qui sert

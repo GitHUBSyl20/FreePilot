@@ -29,6 +29,21 @@ export type AppSettings = {
   hotProspectFollowUpDays: number;
   warmProspectFollowUpDays: number;
   coldProspectFollowUpDays: number;
+  /**
+   * Jours sans interaction sur le prospect au-delà desquels une opportunité
+   * ouverte est marquée dormante. Le pipeline partenariat suit son propre
+   * rythme : voir `dormantPartnershipDays`.
+   */
+  dormantOpportunityDays: number;
+  dormantPartnershipDays: number;
+  /**
+   * Probabilité par stade, modifiable dans les réglages plutôt que codée en
+   * dur (AGENTS.md). Clé composite `${pipeline}:${stageId}` — voir
+   * `stageProbabilityKey` dans `crm/pipelines.ts` — car un même identifiant de
+   * stade (ex. « proposal ») porte des probabilités différentes selon le
+   * pipeline.
+   */
+  stageProbabilities: Record<string, number>;
 };
 
 export type NetAvailableInput = {
@@ -107,6 +122,8 @@ export type EditableInvoice = InvoiceRecord & {
   paymentAccountId: string | null;
   /** Prospect du CRM à l'origine de la facture, quand le lien est fait. */
   prospectId?: string | null;
+  /** Opportunité passée au réel à la facturation, quand le lien est fait. */
+  opportunityId?: string | null;
 };
 
 /**
@@ -200,6 +217,12 @@ export type Prospect = {
   nextFollowUpDate: string | null;
   notes: string;
   createdAt: string;
+  /**
+   * Prospect qui apporte des affaires plutôt qu'il n'en signe : un client
+   * satisfait, un confrère, un contact réseau. Piloté sur le pipeline
+   * `partenariat` et suivi séparément dans `ChannelsView`.
+   */
+  estPrescripteur: boolean;
 };
 
 /** Un contact réellement passé, à conserver sans limite de nombre. */
@@ -211,7 +234,87 @@ export type Interaction = {
   note: string;
 };
 
-export const FINANCE_DATA_VERSION = 4;
+/**
+ * Trois cycles de vente distincts, avec des stades qui ne se recouvrent pas.
+ * Voir `crm/pipelines.ts` pour le détail des stades et leurs critères de
+ * sortie.
+ */
+export type PipelineKind = 'formation' | 'projet' | 'partenariat';
+
+export type OpportunityStatus = 'open' | 'won' | 'lost' | 'abandoned';
+
+export type LossReason =
+  | 'price'
+  | 'noBudget'
+  | 'timing'
+  | 'needUnconfirmed'
+  | 'competitor'
+  | 'notDecisionMaker'
+  | 'noAnswer'
+  | 'outOfScope';
+
+/**
+ * Une affaire : un montant, un pipeline, un stade, une probabilité. Un
+ * prospect (la relation) peut porter plusieurs opportunités simultanées —
+ * c'est le cas central, pas le cas limite.
+ */
+export type Opportunity = {
+  id: string;
+  prospectId: string;
+  title: string;
+  pipeline: PipelineKind;
+  stageId: string;
+  /** Montant HT de l'affaire. Zéro sur le pipeline partenariat. */
+  amount: number;
+  /** Prestation récurrente : alimente le MRR prévisionnel à partir du gain. */
+  recurring: boolean;
+  monthlyAmount: number | null;
+  /**
+   * Probabilité retenue. Héritée du stade par défaut ; une saisie manuelle la
+   * fige via `probabilityOverride`, sinon un changement de stade écraserait
+   * un jugement humain.
+   */
+  probability: number;
+  probabilityOverride: boolean;
+  expectedCloseDate: string | null;
+  /** Événement précis d'origine : « Petit déj CPME 12/03 ». */
+  originEvent: string | null;
+  /** Prospect prescripteur à l'origine de l'affaire, quand il y en a un. */
+  referrerProspectId: string | null;
+  /** Formation uniquement : le mode de financement change le délai. */
+  funding: 'direct' | 'opco' | 'mixed' | null;
+  status: OpportunityStatus;
+  lossReason: LossReason | null;
+  statusDate: string | null;
+  createdAt: string;
+};
+
+/** Changement de stade journalisé à l'écriture, jamais reconstruit après coup. */
+export type StageChange = {
+  id: string;
+  opportunityId: string;
+  fromStageId: string | null;
+  toStageId: string;
+  date: string;
+  daysInPreviousStage: number | null;
+};
+
+export type TaskStatus = 'open' | 'done' | 'cancelled';
+
+export type Task = {
+  id: string;
+  prospectId: string;
+  opportunityId: string | null;
+  /** Ce qu'il faut faire, en clair. Une date sans libellé ne sert à rien. */
+  label: string;
+  dueDate: string;
+  priority: 'high' | 'normal' | 'low';
+  status: TaskStatus;
+  completedAt: string | null;
+  createdAt: string;
+};
+
+export const FINANCE_DATA_VERSION = 5;
 
 export type FinanceData = {
   version: typeof FINANCE_DATA_VERSION;
@@ -223,6 +326,9 @@ export type FinanceData = {
   areMonths: MonthlyAREEntry[];
   prospects: Prospect[];
   interactions: Interaction[];
+  opportunities: Opportunity[];
+  stageChanges: StageChange[];
+  tasks: Task[];
   /**
    * Premier mois pour lequel les charges fixes ont engendré leurs opérations.
    *

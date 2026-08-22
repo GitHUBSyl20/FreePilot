@@ -423,6 +423,9 @@ export const addProspect = (
     nextFollowUpDate: input.nextFollowUpDate ?? null,
     notes: input.notes?.trim() ?? '',
     createdAt: input.createdAt ?? todayISO(),
+    // Non exposé au formulaire de saisie rapide pour l'instant : se règle
+    // depuis la fiche prospect, au même endroit que température et statut.
+    estPrescripteur: false,
   };
 
   return { ...data, prospects: [prospect, ...data.prospects] };

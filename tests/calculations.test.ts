@@ -38,6 +38,9 @@ const settings: AppSettings = {
   hotProspectFollowUpDays: 7,
   warmProspectFollowUpDays: 21,
   coldProspectFollowUpDays: 60,
+  dormantOpportunityDays: 14,
+  dormantPartnershipDays: 30,
+  stageProbabilities: {},
 };
 
 describe('calculation rules', () => {

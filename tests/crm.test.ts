@@ -33,6 +33,7 @@ const prospect = (
   nextFollowUpDate: null,
   notes: '',
   createdAt: '2026-07-01',
+  estPrescripteur: false,
   ...overrides,
 });
 
@@ -49,7 +50,7 @@ const contact = (id: string, prospectId: string, date: string): Interaction => (
  * du jour, à venir sur délai déduit, à venir sur date posée, signé et perdu.
  */
 const portfolio = (): FinanceData => ({
-  version: 4,
+  version: 5,
   recurringChargeAutoPostFrom: null,
   settings: defaultSettings,
   accounts: [{ id: 'pro', name: 'Compte pro', kind: 'professional', openingBalance: 0 }],
@@ -116,6 +117,9 @@ const portfolio = (): FinanceData => ({
     contact('i-3', 'p-planned', '2026-07-25'),
     contact('i-4', 'p-signed', '2026-05-10'),
   ],
+  opportunities: [],
+  stageChanges: [],
+  tasks: [],
 });
 
 const byName = (data: FinanceData, name: string) =>
