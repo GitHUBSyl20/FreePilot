@@ -1,0 +1,25 @@
+name: Garder Supabase actif
+
+# Le plan gratuit Supabase met le projet en pause après 7 jours sans
+# requête API. Ce cron tape l'API 2x/semaine (marge large sous les 7 jours)
+# pour que la synchro cloud ne tombe jamais en pause.
+on:
+  schedule:
+    - cron: '0 6 * * 1,4' # lundi et jeudi, 6h UTC
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping l'API REST Supabase
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "apikey: ${{ secrets.VITE_SUPABASE_ANON_KEY }}" \
+            "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/")
+          echo "Réponse API Supabase : HTTP $code"
+          # 200 = OK, 401/404 restent une activité API valable pour éviter la pause.
+          if [ "$code" -ge 500 ]; then
+            echo "Le projet Supabase ne répond pas correctement."
+            exit 1
+          fi
