@@ -117,6 +117,24 @@ export const listDueFollowUps = (data: FinanceData, today: string = todayISO()):
     (followUp) => followUp.urgency === 'overdue' || followUp.urgency === 'today',
   );
 
+/** Vrai si le prospect porte au moins une opportunité encore ouverte. */
+const hasOpenOpportunity = (data: FinanceData, prospectId: string): boolean =>
+  data.opportunities.some((opportunity) => opportunity.prospectId === prospectId && opportunity.status === 'open');
+
+/**
+ * R8 — le moteur de relance par température ne couvre que les prospects sans
+ * opportunité ouverte (le nurturing de réseau). Dès qu'une affaire est
+ * ouverte, ce sont les `Task` qui pilotent la relance : les deux ne doivent
+ * jamais se concurrencer sur le même prospect le même jour, ce que ce filtre
+ * garantit par construction plutôt que par une déduplication a posteriori.
+ */
+export const networkFollowUps = (data: FinanceData, today: string = todayISO()): ProspectFollowUp[] =>
+  buildProspectFollowUps(data, today).filter((followUp) => !hasOpenOpportunity(data, followUp.prospect.id));
+
+/** Relances réseau à traiter : en retard ou à faire aujourd'hui, hors prospects déjà pilotés par une affaire. */
+export const listDueNetworkFollowUps = (data: FinanceData, today: string = todayISO()): ProspectFollowUp[] =>
+  networkFollowUps(data, today).filter((followUp) => followUp.urgency === 'overdue' || followUp.urgency === 'today');
+
 export const summarizeCrm = (data: FinanceData, today: string = todayISO()): CrmSummary => {
   const followUps = buildProspectFollowUps(data, today);
   const summary: CrmSummary = {
@@ -142,8 +160,13 @@ export const summarizeCrm = (data: FinanceData, today: string = todayISO()): Crm
     // La température ne qualifie que les relations encore ouvertes.
     if (prospect.status === 'active') summary.byTemperature[prospect.temperature] += 1;
 
-    if (followUp.urgency === 'overdue') summary.overdue += 1;
-    if (followUp.urgency === 'today') summary.dueToday += 1;
+    // R8 : une fois pilotée par une affaire ouverte, l'échéance de température
+    // ne compte plus dans les compteurs de relance réseau — sinon le même
+    // prospect remonterait deux fois le même jour, une fois ici et une fois
+    // parmi les tâches.
+    const coveredByNetwork = !hasOpenOpportunity(data, prospect.id);
+    if (coveredByNetwork && followUp.urgency === 'overdue') summary.overdue += 1;
+    if (coveredByNetwork && followUp.urgency === 'today') summary.dueToday += 1;
     if (prospect.status === 'active' && followUp.interactionCount === 0) summary.neverContacted += 1;
 
     if (prospect.status === 'signed') summary.signedCollectedRevenue += followUp.revenue.collected;

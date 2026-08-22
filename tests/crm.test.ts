@@ -1,6 +1,7 @@
 import type { FinanceData, Interaction, Prospect } from '@freepilot/finance-core';
 import {
   addDays,
+  addOpportunity,
   addProspect,
   buildProspectFollowUps,
   daysBetween,
@@ -9,10 +10,13 @@ import {
   deleteProspect,
   getCurrentMonth,
   listDueFollowUps,
+  listDueNetworkFollowUps,
   logInteraction,
+  networkFollowUps,
   revenueByProspect,
   summarizeCrm,
   todayISO,
+  updateOpportunity,
   updateProspect,
 } from '@freepilot/finance-core';
 import { describe, expect, it } from 'vitest';
@@ -321,5 +325,58 @@ describe('opérations CRM', () => {
     const data = updateProspect(portfolio(), 'p-hot', { company: '   ' });
 
     expect(data.prospects.find((item) => item.id === 'p-hot')?.company).toBeNull();
+  });
+});
+
+describe('R8 — pas de relance concurrente entre réseau et affaire ouverte', () => {
+  it('exclut du nurturing réseau un prospect qui porte une opportunité ouverte', () => {
+    const withOpportunity = addOpportunity(portfolio(), {
+      prospectId: 'p-hot',
+      title: 'Automatisation reporting',
+      pipeline: 'projet',
+      stageId: 'discovery',
+      createdAt: '2026-07-20',
+    });
+
+    // Toujours visible côté température brute (fonction générique inchangée)...
+    expect(buildProspectFollowUps(withOpportunity, TODAY).some((followUp) => followUp.prospect.id === 'p-hot')).toBe(true);
+    expect(listDueFollowUps(withOpportunity, TODAY).some((followUp) => followUp.prospect.id === 'p-hot')).toBe(true);
+
+    // ...mais plus dans le nurturing réseau, désormais piloté par l'affaire.
+    expect(networkFollowUps(withOpportunity, TODAY).some((followUp) => followUp.prospect.id === 'p-hot')).toBe(false);
+    expect(listDueNetworkFollowUps(withOpportunity, TODAY).some((followUp) => followUp.prospect.id === 'p-hot')).toBe(false);
+  });
+
+  it('retire ce prospect du compteur « en retard » de summarizeCrm', () => {
+    expect(summarizeCrm(portfolio(), TODAY).overdue).toBe(1); // Alice, en retard sur la seule température
+
+    const withOpportunity = addOpportunity(portfolio(), {
+      prospectId: 'p-hot',
+      title: 'Automatisation reporting',
+      pipeline: 'projet',
+      stageId: 'discovery',
+      createdAt: '2026-07-20',
+    });
+
+    expect(summarizeCrm(withOpportunity, TODAY).overdue).toBe(0);
+  });
+
+  it('redevient couvert par le nurturing réseau une fois l’affaire close', () => {
+    const withOpportunity = addOpportunity(portfolio(), {
+      prospectId: 'p-hot',
+      title: 'Automatisation reporting',
+      pipeline: 'projet',
+      stageId: 'negotiation',
+      amount: 3000,
+      createdAt: '2026-07-20',
+    });
+    const closed = updateOpportunity(
+      withOpportunity,
+      withOpportunity.opportunities[0].id,
+      { status: 'won', amount: 3000 },
+      TODAY,
+    );
+
+    expect(networkFollowUps(closed, TODAY).some((followUp) => followUp.prospect.id === 'p-hot')).toBe(true);
   });
 });

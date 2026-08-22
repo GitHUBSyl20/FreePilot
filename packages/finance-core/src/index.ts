@@ -16,6 +16,7 @@ export * from './crm/opportunities';
 export * from './crm/pipelines';
 export * from './crm/stageChanges';
 export * from './crm/tasks';
+export * from './crm/weightedPipeline';
 export * from './monthly/cashflowSeries';
 export * from './monthly/chargePosting';
 export * from './monthly/financeProjection';

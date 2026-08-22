@@ -371,6 +371,14 @@ export type MonthlyOutlook = {
    * un montant se lit comme un mois sans allocation.
    */
   nextMonthARE: number | null;
+  /**
+   * Pondéré du pipeline CRM pour ce mois (`amount × probability`, pipeline
+   * partenariat exclu). Un revenu *attendu*, jamais de la trésorerie acquise
+   * — ne jamais l'agréger à `cashflow.collectedRevenue` ou à `netFinal`.
+   */
+  weightedPipelineForecast: number;
+  /** MRR prévisionnel : opportunités récurrentes déjà gagnées, même réserve que ci-dessus. */
+  mrrForecast: number;
 };
 
 export type DashboardProjection = {
@@ -386,6 +394,9 @@ export type DashboardProjection = {
     resteAVivre: number;
     seuilCoupureARE: number;
     joursAreRestants: number;
+    /** Voir `MonthlyOutlook.weightedPipelineForecast` : jamais du CA encaissé. */
+    pipelinePondere: number;
+    mrrPrevisionnel: number;
   };
   formulas: {
     are: string;

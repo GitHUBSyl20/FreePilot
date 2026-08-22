@@ -9,6 +9,7 @@ import type {
 } from '../types';
 import { calculateARECutoff } from '../calculations/are';
 import { roundCurrency, safeNumber } from '../calculations/common';
+import { mrrForecast, weightedPipelineForMonth } from '../crm/weightedPipeline';
 import { buildMonthlyCashflowSeries } from './cashflowSeries';
 import { addMonths, compareMonths } from './month';
 
@@ -158,5 +159,9 @@ export const projectMonthlyOutlook = (data: FinanceData, month: string): Monthly
     // s'appuie dessus plutôt que de redire la règle ici, sinon les deux
     // finiraient par diverger.
     nextMonthARE: nextARE && nextARE.warnings.length === 0 ? nextARE.value : null,
+    weightedPipelineForecast: weightedPipelineForMonth(data, month),
+    // Comparaison lexicographique de 'YYYY-MM-DD' : le 31 n'a pas besoin
+    // d'exister réellement, la chaîne suffit à borner le mois par le haut.
+    mrrForecast: mrrForecast(data, `${month}-31`),
   };
 };

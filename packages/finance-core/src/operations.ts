@@ -118,6 +118,8 @@ export const projectDashboard = (data: FinanceData, month: string = getCurrentMo
       resteAVivre: outlook.resteAVivre.value,
       seuilCoupureARE: outlook.areCutoff.value,
       joursAreRestants: projectRemainingAREDays(consumedUpToMonth, data.settings),
+      pipelinePondere: outlook.weightedPipelineForecast,
+      mrrPrevisionnel: outlook.mrrForecast,
     },
     formulas: {
       are: outlook.cashflow.theoreticalARE.formula,
