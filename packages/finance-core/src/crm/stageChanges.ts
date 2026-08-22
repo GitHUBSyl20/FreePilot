@@ -1,6 +1,20 @@
 import type { FinanceData, Opportunity, PipelineKind } from '../types';
-import { daysBetween } from './day';
+import { daysBetween, todayISO } from './day';
 import { stagesForPipeline } from './pipelines';
+
+/**
+ * Jours écoulés depuis l'entrée dans le stade courant de l'opportunité —
+ * la pastille de fraîcheur de `PipelineView` (§6.2 : vert sous 7 jours,
+ * orange 7 à 14, rouge au-delà).
+ */
+export const daysInCurrentStage = (data: FinanceData, opportunity: Opportunity, today: string = todayISO()): number => {
+  const lastChange = data.stageChanges
+    .filter((change) => change.opportunityId === opportunity.id)
+    .sort((left, right) => right.date.localeCompare(left.date) || right.id.localeCompare(left.id))[0];
+  const referenceDate = lastChange?.date ?? opportunity.createdAt;
+
+  return Math.max(0, daysBetween(referenceDate, today));
+};
 
 /**
  * Opportunités actuellement rattachées à ce pipeline.

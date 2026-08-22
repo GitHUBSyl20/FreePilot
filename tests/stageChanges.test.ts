@@ -3,6 +3,7 @@ import {
   addOpportunity,
   averageCycleDurationDays,
   averageDaysInStage,
+  daysInCurrentStage,
   defaultSettings,
   stageConversionRates,
   stageFunnelCounts,
@@ -117,5 +118,28 @@ describe('averageCycleDurationDays', () => {
 
   it('renvoie null sans aucune affaire gagnée', () => {
     expect(averageCycleDurationDays(emptyData(), 'projet')).toBeNull();
+  });
+});
+
+describe('daysInCurrentStage', () => {
+  it('compte depuis le dernier changement de stade, pas depuis la création', () => {
+    const data = scenario();
+    const opportunityA = data.opportunities.find((opportunity) => opportunity.title === 'Affaire A')!;
+
+    // A est passée en « proposal » le 1er février ; un changement de statut
+    // (le gain, le 10 février) ne déplace pas le stade.
+    expect(daysInCurrentStage(data, opportunityA, '2026-02-15')).toBe(14);
+  });
+
+  it('part de la date de création pour une affaire jamais déplacée de son stade initial', () => {
+    const data = addOpportunity(emptyData(), {
+      prospectId: 'p-1',
+      title: 'Toute nouvelle',
+      pipeline: 'projet',
+      stageId: 'identified',
+      createdAt: '2026-03-01',
+    });
+
+    expect(daysInCurrentStage(data, data.opportunities[0], '2026-03-08')).toBe(7);
   });
 });

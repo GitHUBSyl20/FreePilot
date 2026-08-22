@@ -14,9 +14,10 @@ import { FollowUpsView } from './FollowUpsView';
 import { PipelineView } from './PipelineView';
 import { ProspectDetailView } from './ProspectDetailView';
 import { ProspectFormView } from './ProspectFormView';
+import { TemperatureView } from './TemperatureView';
 import { TodayView } from './TodayView';
 
-type CrmPage = 'today' | 'network' | 'pipeline' | 'new';
+type CrmPage = 'today' | 'network' | 'pipeline' | 'temperature' | 'new';
 
 type ProspectChanges = Partial<
   Pick<Prospect, 'company' | 'name' | 'nextFollowUpDate' | 'notes' | 'source' | 'status' | 'temperature'>
@@ -47,12 +48,14 @@ type Props = {
   }) => void;
   onDeleteInteraction: (interaction: Interaction) => void;
   onCompleteTask: (taskId: string) => void;
+  onChangeOpportunityStage: (opportunityId: string, stageId: string) => void;
 };
 
 const pages: [CrmPage, string][] = [
   ['today', 'Aujourd’hui'],
   ['network', 'Réseau'],
   ['pipeline', 'Pipeline'],
+  ['temperature', 'Température'],
   ['new', 'Ajouter'],
 ];
 
@@ -61,6 +64,7 @@ export function CrmView({
   followUps,
   interactions,
   onAddProspect,
+  onChangeOpportunityStage,
   onCompleteTask,
   onDeleteInteraction,
   onDeleteProspect,
@@ -139,7 +143,16 @@ export function CrmView({
       ) : null}
 
       {page === 'pipeline' && followUps.length > 0 ? (
-        <PipelineView followUps={followUps} onOpen={setSelectedProspectId} />
+        <PipelineView
+          data={data}
+          onChangeStage={onChangeOpportunityStage}
+          onOpenProspect={setSelectedProspectId}
+          today={today}
+        />
+      ) : null}
+
+      {page === 'temperature' && followUps.length > 0 ? (
+        <TemperatureView followUps={followUps} onOpen={setSelectedProspectId} />
       ) : null}
     </>
   );

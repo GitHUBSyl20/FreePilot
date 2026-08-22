@@ -29,6 +29,7 @@ import {
   summarizeCrm,
   todayISO,
   updateInvoice,
+  updateOpportunity,
   updateProspect,
   updateRecurringCharge,
   updateSettings,
@@ -361,6 +362,9 @@ export const App = () => {
           followUps={followUps}
           interactions={data.interactions}
           onAddProspect={(input) => saveData(addProspect(data, input))}
+          onChangeOpportunityStage={(opportunityId, stageId) =>
+            saveData(updateOpportunity(data, opportunityId, { stageId }, currentDay))
+          }
           onCompleteTask={(taskId) => saveData(completeTask(data, taskId))}
           onDeleteInteraction={handleDeleteInteraction}
           onDeleteProspect={handleDeleteProspect}

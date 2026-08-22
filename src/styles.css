@@ -681,6 +681,23 @@ textarea {
   background: #e5e7eb;
 }
 
+/* Pastille de fraîcheur d'une affaire dans son stade courant (PipelineView) :
+   mêmes couleurs que les tons de relance, sous un nom qui parle de stade. */
+.badge.fresh {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.badge.stale-warn {
+  color: #92400e;
+  background: #fde68a;
+}
+
+.badge.stale-alert {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
 /* Compteur de relances en retard, accolé au libellé de l'onglet. */
 .tab-count {
   display: inline-block;
