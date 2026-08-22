@@ -13,6 +13,7 @@ import type {
 import { interactionsForProspect, networkFollowUps, opportunitiesForProspect, tasksForProspect } from '@freepilot/finance-core';
 import { useMemo, useState } from 'react';
 import { EmptyState, Panel } from '../../components/Panel';
+import { ChannelsView } from './ChannelsView';
 import { FollowUpsView } from './FollowUpsView';
 import { OpportunityFormView } from './OpportunityFormView';
 import { PipelineView } from './PipelineView';
@@ -21,7 +22,7 @@ import { ProspectFormView } from './ProspectFormView';
 import { TemperatureView } from './TemperatureView';
 import { TodayView } from './TodayView';
 
-type CrmPage = 'today' | 'network' | 'pipeline' | 'temperature' | 'new';
+type CrmPage = 'today' | 'network' | 'pipeline' | 'temperature' | 'channels' | 'new';
 
 type ProspectChanges = Partial<
   Pick<Prospect, 'company' | 'name' | 'nextFollowUpDate' | 'notes' | 'source' | 'status' | 'temperature'>
@@ -68,6 +69,7 @@ const pages: [CrmPage, string][] = [
   ['network', 'Réseau'],
   ['pipeline', 'Pipeline'],
   ['temperature', 'Température'],
+  ['channels', 'Canaux'],
   ['new', 'Ajouter'],
 ];
 
@@ -208,6 +210,8 @@ export function CrmView({
       {page === 'temperature' && followUps.length > 0 ? (
         <TemperatureView followUps={followUps} onOpen={setSelectedProspectId} />
       ) : null}
+
+      {page === 'channels' && followUps.length > 0 ? <ChannelsView data={data} /> : null}
     </>
   );
 }

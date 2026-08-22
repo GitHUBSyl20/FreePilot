@@ -9,6 +9,7 @@ export * from './calculations/netAvailable';
 export * from './calculations/tax';
 export * from './calculations/urssaf';
 export * from './migrate';
+export * from './crm/channels';
 export * from './crm/day';
 export * from './crm/dormancy';
 export * from './crm/followUps';
