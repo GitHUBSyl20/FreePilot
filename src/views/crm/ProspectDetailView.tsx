@@ -1,16 +1,27 @@
 import type {
   Interaction,
   InteractionChannel,
+  Opportunity,
   Prospect,
   ProspectFollowUp,
   ProspectStatus,
   ProspectTemperature,
+  Task,
 } from '@freepilot/finance-core';
+import { PIPELINE_LABELS, findStage, suggestNextTask } from '@freepilot/finance-core';
 import { useState } from 'react';
 import { EmptyState, InfoRow, Panel } from '../../components/Panel';
 import { formatCurrency, formatDate, formatDayGap } from '../../format';
 import { Badge } from './ProspectRow';
-import { channelLabels, channelOrder, statusLabels, temperatureLabels, temperatureOrder, urgencyLabels } from './labels';
+import {
+  channelLabels,
+  channelOrder,
+  opportunityStatusLabels,
+  statusLabels,
+  temperatureLabels,
+  temperatureOrder,
+  urgencyLabels,
+} from './labels';
 
 type ProspectChanges = Partial<
   Pick<Prospect, 'company' | 'name' | 'nextFollowUpDate' | 'notes' | 'source' | 'status' | 'temperature'>
@@ -19,6 +30,8 @@ type ProspectChanges = Partial<
 type Props = {
   followUp: ProspectFollowUp;
   history: Interaction[];
+  opportunities: Opportunity[];
+  tasks: Task[];
   today: string;
   onBack: () => void;
   onUpdate: (input: ProspectChanges) => void;
@@ -30,16 +43,31 @@ type Props = {
   }) => void;
   onDeleteInteraction: (interaction: Interaction) => void;
   onDelete: () => void;
+  onOpenOpportunity: (opportunityId: string | null) => void;
+  onCompleteTask: (taskId: string) => void;
+  onCancelTask: (taskId: string) => void;
+  onAddTask: (input: { label: string; dueDate: string }) => void;
 };
+
+/** Une ligne d'historique, interaction ou tâche traitée, fusionnées puis triées. */
+type TimelineEntry =
+  | { kind: 'interaction'; date: string; interaction: Interaction }
+  | { kind: 'task'; date: string; task: Task };
 
 export function ProspectDetailView({
   followUp,
   history,
   onBack,
+  onCancelTask,
+  onCompleteTask,
   onDelete,
   onDeleteInteraction,
+  onAddTask,
   onLogInteraction,
+  onOpenOpportunity,
   onUpdate,
+  opportunities,
+  tasks,
   today,
 }: Props) {
   const { prospect } = followUp;
@@ -48,15 +76,27 @@ export function ProspectDetailView({
   const [note, setNote] = useState('');
   const [nextFollowUpDate, setNextFollowUpDate] = useState('');
   const [notes, setNotes] = useState(prospect.notes);
+  // R5 : proposée juste après l'enregistrement d'un contact, jamais créée
+  // automatiquement — l'utilisateur l'ajuste ou la valide en un geste.
+  const [suggestion, setSuggestion] = useState<{ label: string; dueDate: string } | null>(null);
 
   const submitInteraction = () => {
     if (!contactDate) return;
 
     onLogInteraction({ date: contactDate, channel, note, nextFollowUpDate: nextFollowUpDate || null });
+    setSuggestion(suggestNextTask({ interactionCount: history.length + 1, fromDate: contactDate }));
     setNote('');
     setNextFollowUpDate('');
     setContactDate(today);
   };
+
+  const openTasks = tasks.filter((task) => task.status === 'open');
+  const timeline: TimelineEntry[] = [
+    ...history.map((interaction): TimelineEntry => ({ kind: 'interaction', date: interaction.date, interaction })),
+    ...tasks
+      .filter((task) => task.status !== 'open')
+      .map((task): TimelineEntry => ({ kind: 'task', date: task.completedAt ?? task.dueDate, task })),
+  ].sort((left, right) => right.date.localeCompare(left.date));
 
   return (
     <section className="details-stack single">
@@ -80,6 +120,61 @@ export function ProspectDetailView({
             : 'Aucune relance prévue'}
         </p>
       </article>
+
+      <Panel title="Opportunités">
+        {opportunities.length === 0 ? (
+          <EmptyState>Aucune affaire en cours pour ce prospect.</EmptyState>
+        ) : (
+          opportunities.map((opportunity) => {
+            const stage = findStage(opportunity.pipeline, opportunity.stageId);
+            return (
+              <button
+                className="row-button"
+                key={opportunity.id}
+                onClick={() => onOpenOpportunity(opportunity.id)}
+                type="button"
+              >
+                <span className="row-title">
+                  <strong>{opportunity.title}</strong>
+                  <span className="badge-row">
+                    <Badge tone={`status-${opportunity.status === 'open' ? 'active' : opportunity.status === 'won' ? 'signed' : 'lost'}`}>
+                      {opportunityStatusLabels[opportunity.status]}
+                    </Badge>
+                  </span>
+                </span>
+                <span className="row-detail">
+                  {PIPELINE_LABELS[opportunity.pipeline]} · {stage?.label ?? opportunity.stageId}
+                </span>
+                {opportunity.amount > 0 ? <span className="row-detail">{formatCurrency(opportunity.amount)}</span> : null}
+              </button>
+            );
+          })
+        )}
+        <button className="secondary-button" onClick={() => onOpenOpportunity(null)} type="button">
+          Nouvelle affaire
+        </button>
+      </Panel>
+
+      {openTasks.length > 0 ? (
+        <Panel title="Tâches">
+          {openTasks.map((task) => (
+            <div className="charge-row" key={task.id}>
+              <span className="charge-label">
+                <strong>{task.label}</strong>
+                <span>{formatDate(task.dueDate)}</span>
+              </span>
+              <div className="charge-actions">
+                <button className="mini-button" onClick={() => onCompleteTask(task.id)} type="button">
+                  Fait
+                </button>
+                <button className="mini-button danger" onClick={() => onCancelTask(task.id)} type="button">
+                  Annuler
+                </button>
+              </div>
+            </div>
+          ))}
+        </Panel>
+      ) : null}
 
       <Panel title="Suivi">
         <label htmlFor="detail-temperature">Température</label>
@@ -137,7 +232,7 @@ export function ProspectDetailView({
         />
       </Panel>
 
-      <Panel title="Enregistrer un contact">
+      <Panel title="Journaliser un contact">
         <label htmlFor="interaction-date">Date</label>
         <input
           id="interaction-date"
@@ -161,7 +256,7 @@ export function ProspectDetailView({
 
         <textarea onChange={(event) => setNote(event.target.value)} placeholder="Ce qui s’est dit" rows={3} value={note} />
 
-        <label htmlFor="interaction-next">Prochaine relance (optionnel)</label>
+        <label htmlFor="interaction-next">Prochaine relance réseau (optionnel)</label>
         <input
           id="interaction-next"
           onChange={(event) => setNextFollowUpDate(event.target.value)}
@@ -175,24 +270,66 @@ export function ProspectDetailView({
         <p className="muted-note">
           Sans date, la prochaine échéance repart du délai lié à la température, décompté depuis ce contact.
         </p>
+
+        {suggestion ? (
+          <div className="record-card">
+            <label htmlFor="suggested-task-label">Prochaine action suggérée</label>
+            <input
+              id="suggested-task-label"
+              onChange={(event) => setSuggestion({ ...suggestion, label: event.target.value })}
+              value={suggestion.label}
+            />
+            <input
+              aria-label="Échéance de la tâche suggérée"
+              onChange={(event) => setSuggestion({ ...suggestion, dueDate: event.target.value })}
+              type="date"
+              value={suggestion.dueDate}
+            />
+            <div className="button-row">
+              <button
+                className="primary-button"
+                onClick={() => {
+                  onAddTask(suggestion);
+                  setSuggestion(null);
+                }}
+                type="button"
+              >
+                Valider la tâche
+              </button>
+              <button className="secondary-button" onClick={() => setSuggestion(null)} type="button">
+                Ignorer
+              </button>
+            </div>
+          </div>
+        ) : null}
       </Panel>
 
       <Panel title="Historique">
-        {history.length === 0 ? (
-          <EmptyState>Aucun contact enregistré.</EmptyState>
+        {timeline.length === 0 ? (
+          <EmptyState>Aucun contact ni tâche enregistrés.</EmptyState>
         ) : (
-          history.map((interaction) => (
-            <div className="record-card" key={interaction.id}>
-              <InfoRow
-                helper={interaction.note || null}
-                label={formatDate(interaction.date)}
-                value={channelLabels[interaction.channel]}
-              />
-              <button className="danger-button" onClick={() => onDeleteInteraction(interaction)} type="button">
-                Supprimer
-              </button>
-            </div>
-          ))
+          timeline.map((entry) =>
+            entry.kind === 'interaction' ? (
+              <div className="record-card" key={`interaction-${entry.interaction.id}`}>
+                <InfoRow
+                  helper={entry.interaction.note || null}
+                  label={formatDate(entry.interaction.date)}
+                  value={channelLabels[entry.interaction.channel]}
+                />
+                <button className="danger-button" onClick={() => onDeleteInteraction(entry.interaction)} type="button">
+                  Supprimer
+                </button>
+              </div>
+            ) : (
+              <div className="record-card" key={`task-${entry.task.id}`}>
+                <InfoRow
+                  helper={entry.task.status === 'done' ? 'Faite' : 'Annulée'}
+                  label={formatDate(entry.date)}
+                  value={entry.task.label}
+                />
+              </div>
+            ),
+          )
         )}
       </Panel>
 

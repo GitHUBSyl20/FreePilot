@@ -1,18 +1,22 @@
 import type { ChangeEvent } from 'react';
-import type { EditableInvoice, FinanceData, Interaction, Prospect, RecurringCharge, Transaction } from '@freepilot/finance-core';
+import type { EditableInvoice, FinanceData, Interaction, Opportunity, Prospect, RecurringCharge, Transaction } from '@freepilot/finance-core';
 import {
   addExpense,
   addInvoice,
+  addOpportunity,
   addOtherIncome,
   addProspect,
   addRecurringCharge,
+  addTask,
   buildFinanceSeries,
   buildProspectFollowUps,
+  cancelTask,
   completeTask,
   createTransfer,
   deleteAREMonth,
   deleteInteraction,
   deleteInvoice,
+  deleteOpportunity,
   deleteProspect,
   deleteRecurringCharge,
   deleteTransaction,
@@ -227,6 +231,15 @@ export const App = () => {
     });
   };
 
+  const handleDeleteOpportunity = (opportunity: Opportunity) => {
+    setConfirmation({
+      title: 'Supprimer l’affaire ?',
+      message: `« ${opportunity.title} » et ses tâches liées seront supprimées.`,
+      confirmLabel: 'Supprimer',
+      onConfirm: () => saveData(deleteOpportunity(data, opportunity.id)),
+    });
+  };
+
   const handleDeleteInteraction = (interaction: Interaction) => {
     setConfirmation({
       title: 'Supprimer ce contact ?',
@@ -362,13 +375,18 @@ export const App = () => {
           followUps={followUps}
           interactions={data.interactions}
           onAddProspect={(input) => saveData(addProspect(data, input))}
+          onAddTask={(input) => saveData(addTask(data, input))}
+          onCancelTask={(taskId) => saveData(cancelTask(data, taskId))}
           onChangeOpportunityStage={(opportunityId, stageId) =>
             saveData(updateOpportunity(data, opportunityId, { stageId }, currentDay))
           }
           onCompleteTask={(taskId) => saveData(completeTask(data, taskId))}
+          onCreateOpportunity={(input) => saveData(addOpportunity(data, input))}
           onDeleteInteraction={handleDeleteInteraction}
+          onDeleteOpportunity={handleDeleteOpportunity}
           onDeleteProspect={handleDeleteProspect}
           onLogInteraction={(input) => saveData(logInteraction(data, input))}
+          onUpdateOpportunity={(opportunityId, input) => saveData(updateOpportunity(data, opportunityId, input, currentDay))}
           onUpdateProspect={(prospectId, input) => saveData(updateProspect(data, prospectId, input))}
           summary={crmSummary}
           today={currentDay}

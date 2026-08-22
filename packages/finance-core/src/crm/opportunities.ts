@@ -95,6 +95,12 @@ export type UpdateOpportunityInput = Partial<{
   monthlyAmount: number | null;
   /** Saisie manuelle : fige `probabilityOverride` (R4). */
   probability: number;
+  /**
+   * Passé explicitement à `false`, revient à la probabilité automatique du
+   * stade courant — même idiome que `nextFollowUpDate: null` sur un
+   * prospect. Sans effet si `probability` est fourni dans le même appel.
+   */
+  probabilityOverride: false;
   expectedCloseDate: string | null;
   originEvent: string | null;
   referrerProspectId: string | null;
@@ -165,12 +171,15 @@ export const updateOpportunity = (
 
   // R4 — la probabilité suit le stade par défaut ; une saisie manuelle la
   // fige, et un changement de stade n'écrase plus une valeur déjà figée.
-  const probabilityOverride = input.probability !== undefined ? true : current.probabilityOverride;
+  // `probabilityOverride: false` explicite revient à l'automatique, sauf si
+  // `probability` est fourni dans le même appel (la saisie l'emporte).
+  const clearingOverride = input.probability === undefined && input.probabilityOverride === false;
+  const probabilityOverride = clearingOverride ? false : input.probability !== undefined ? true : current.probabilityOverride;
   const probability = isPartnership
     ? 0
     : input.probability !== undefined
       ? clampProbability(input.probability)
-      : stageChanged && !current.probabilityOverride
+      : clearingOverride || (stageChanged && !current.probabilityOverride)
         ? stageProbability(nextPipeline, nextStageId, data.settings.stageProbabilities)
         : current.probability;
 

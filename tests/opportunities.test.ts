@@ -132,6 +132,27 @@ describe('updateOpportunity — changement de stade et probabilité (R4, R6)', (
     expect(data.opportunities[0].probabilityOverride).toBe(true);
   });
 
+  it('revient à la probabilité automatique du stade sur probabilityOverride: false explicite', () => {
+    const opened = withOpen(); // stade « discovery », 20 %
+    const opportunityId = opened.opportunities[0].id;
+    const overridden = updateOpportunity(opened, opportunityId, { probability: 90 }, '2026-07-10');
+
+    const reverted = updateOpportunity(overridden, opportunityId, { probabilityOverride: false }, TODAY);
+
+    expect(reverted.opportunities[0].probability).toBe(20); // stade courant, toujours « discovery »
+    expect(reverted.opportunities[0].probabilityOverride).toBe(false);
+  });
+
+  it('ignore probabilityOverride: false si une probabilité est fournie dans le même appel', () => {
+    const opened = withOpen();
+    const opportunityId = opened.opportunities[0].id;
+
+    const data = updateOpportunity(opened, opportunityId, { probability: 65, probabilityOverride: false }, TODAY);
+
+    expect(data.opportunities[0].probability).toBe(65);
+    expect(data.opportunities[0].probabilityOverride).toBe(true);
+  });
+
   it('journalise chaque changement de stade avec la durée passée dans le précédent', () => {
     const opened = withOpen();
     const opportunityId = opened.opportunities[0].id;

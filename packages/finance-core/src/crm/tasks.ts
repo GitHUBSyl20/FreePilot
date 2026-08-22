@@ -71,6 +71,10 @@ export const openTasksForProspect = (data: FinanceData, prospectId: string): Tas
     .filter((task) => task.prospectId === prospectId && task.status === 'open')
     .sort((left, right) => left.dueDate.localeCompare(right.dueDate));
 
+/** Toutes les tâches d'un prospect, quel que soit leur statut — pour la fiche prospect. */
+export const tasksForProspect = (data: FinanceData, prospectId: string): Task[] =>
+  data.tasks.filter((task) => task.prospectId === prospectId).sort((left, right) => right.dueDate.localeCompare(left.dueDate));
+
 /** Tâches ouvertes à traiter aujourd'hui : en retard ou dues du jour, priorité haute d'abord. */
 export const dueTasks = (data: FinanceData, today: string = todayISO()): Task[] => {
   const priorityWeight: Record<Task['priority'], number> = { high: 0, normal: 1, low: 2 };
