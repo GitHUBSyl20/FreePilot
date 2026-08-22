@@ -8,6 +8,7 @@ import {
   addProspect,
   addRecurringCharge,
   addTask,
+  applyProspectionImport,
   buildFinanceSeries,
   buildProspectFollowUps,
   cancelTask,
@@ -29,6 +30,7 @@ import {
   markInvoicePaid,
   postDueRecurringCharges,
   projectDashboard,
+  removeImportBatch,
   resetFinanceData,
   setObservedAccountBalance,
   summarizeCrm,
@@ -54,6 +56,7 @@ import { AccountsView } from './views/AccountsView';
 import { AREMonthsView } from './views/AREMonthsView';
 import { CloudView } from './views/CloudView';
 import { CrmView } from './views/crm/CrmView';
+import { ProspectionImportView } from './views/crm/ProspectionImportView';
 import { DashboardView } from './views/DashboardView';
 import { DataView } from './views/DataView';
 import { InvoicesView } from './views/InvoicesView';
@@ -105,6 +108,10 @@ export const App = () => {
   const [settingsPage, setSettingsPage] = useState<SettingsPage>('calculs');
   const [dataNotice, setDataNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
+  // Levé ici plutôt que gardé dans ProspectionImportView : ce dernier est
+  // démonté à chaque changement d'onglet, ce qui effacerait le bouton
+  // d'annulation dès qu'on quitte l'écran des yeux.
+  const [lastImportBatch, setLastImportBatch] = useState<{ batchId: string; count: number } | null>(null);
 
   const currentMonth = useMemo(() => getCurrentMonth(), []);
   const currentDay = useMemo(() => todayISO(), []);
@@ -421,13 +428,26 @@ export const App = () => {
             {settingsPage === 'cloud' ? <CloudView cloud={cloud} /> : null}
 
             {settingsPage === 'donnees' ? (
-              <DataView
-                cloudActive={cloud.user !== null}
-                notice={dataNotice}
-                onExport={handleExportData}
-                onImport={handleImportData}
-                onReset={handleResetData}
-              />
+              <>
+                <DataView
+                  cloudActive={cloud.user !== null}
+                  notice={dataNotice}
+                  onExport={handleExportData}
+                  onImport={handleImportData}
+                  onReset={handleResetData}
+                />
+                <ProspectionImportView
+                  lastImportBatch={lastImportBatch}
+                  onImport={(rows, batchId) => {
+                    saveData(applyProspectionImport(data, rows, batchId, currentDay));
+                    setLastImportBatch({ batchId, count: rows.length });
+                  }}
+                  onRollback={(batchId) => {
+                    saveData(removeImportBatch(data, batchId));
+                    setLastImportBatch(null);
+                  }}
+                />
+              </>
             ) : null}
           </section>
         </>

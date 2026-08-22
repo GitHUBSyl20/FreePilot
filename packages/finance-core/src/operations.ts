@@ -413,6 +413,13 @@ export const addProspect = (
     nextFollowUpDate?: string | null;
     notes?: string;
     createdAt?: string;
+    /**
+     * Non exposé au formulaire de saisie rapide : se règle depuis la fiche
+     * prospect, au même endroit que température et statut. L'import CSV
+     * (colonne Nature = Collaboration) est pour l'instant le seul appelant à
+     * le renseigner directement.
+     */
+    estPrescripteur?: boolean;
   },
 ): FinanceData => {
   const prospect: Prospect = {
@@ -425,9 +432,7 @@ export const addProspect = (
     nextFollowUpDate: input.nextFollowUpDate ?? null,
     notes: input.notes?.trim() ?? '',
     createdAt: input.createdAt ?? todayISO(),
-    // Non exposé au formulaire de saisie rapide pour l'instant : se règle
-    // depuis la fiche prospect, au même endroit que température et statut.
-    estPrescripteur: false,
+    estPrescripteur: input.estPrescripteur ?? false,
   };
 
   return { ...data, prospects: [prospect, ...data.prospects] };

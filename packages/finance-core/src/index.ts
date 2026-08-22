@@ -15,6 +15,7 @@ export * from './crm/dormancy';
 export * from './crm/followUps';
 export * from './crm/opportunities';
 export * from './crm/pipelines';
+export * from './crm/prospectImport';
 export * from './crm/quickCapture';
 export * from './crm/stageChanges';
 export * from './crm/tasks';
