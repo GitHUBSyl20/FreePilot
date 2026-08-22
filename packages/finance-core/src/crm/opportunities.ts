@@ -122,8 +122,14 @@ export const checkOpportunityStatusTransition = (
 
   if (nextStatus === 'won') {
     const amount = input.amount ?? current.amount;
+    const recurring = input.recurring ?? current.recurring;
+    const monthlyAmount = input.monthlyAmount !== undefined ? input.monthlyAmount : current.monthlyAmount;
+    // Une affaire purement récurrente (amount à 0, valeur portée par
+    // monthlyAmount) compte comme montant valide : R3 vérifie qu'un
+    // engagement chiffré existe, pas que ce soit précisément `amount`.
+    const hasValue = amount > 0 || (recurring && monthlyAmount !== null && monthlyAmount > 0);
     const statusDate = input.statusDate !== undefined ? input.statusDate : current.status === 'won' ? current.statusDate : today;
-    if (!(amount > 0) || !statusDate) return 'wonRequiresAmountAndDate';
+    if (!hasValue || !statusDate) return 'wonRequiresAmountAndDate';
   }
 
   if (nextStatus === 'lost') {
