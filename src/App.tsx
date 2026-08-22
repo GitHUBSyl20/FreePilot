@@ -8,6 +8,7 @@ import {
   addRecurringCharge,
   buildFinanceSeries,
   buildProspectFollowUps,
+  completeTask,
   createTransfer,
   deleteAREMonth,
   deleteInteraction,
@@ -15,6 +16,7 @@ import {
   deleteProspect,
   deleteRecurringCharge,
   deleteTransaction,
+  dueTasks,
   getCurrentMonth,
   getProfessionalAccount,
   loadOrSeedFinanceData,
@@ -129,6 +131,9 @@ export const App = () => {
   const series = useMemo(() => (data ? buildFinanceSeries(data, currentMonth) : []), [currentMonth, data]);
   const followUps = useMemo(() => (data ? buildProspectFollowUps(data, currentDay) : []), [currentDay, data]);
   const crmSummary = useMemo(() => (data ? summarizeCrm(data, currentDay) : null), [currentDay, data]);
+  // Compteur d'onglet CRM : relances réseau dues + tâches dues, sans double
+  // compte grâce au filtrage R8 déjà appliqué à crmSummary.overdue.
+  const dueTaskCount = useMemo(() => (data ? dueTasks(data, currentDay).length : 0), [currentDay, data]);
 
   if (!data || !projection || !crmSummary) {
     return (
@@ -248,7 +253,9 @@ export const App = () => {
         {sections.map(([id, label]) => (
           <button className={section === id ? 'active' : ''} key={id} onClick={() => setSection(id)} type="button">
             {label}
-            {id === 'crm' && crmSummary.overdue > 0 ? <span className="tab-count">{crmSummary.overdue}</span> : null}
+            {id === 'crm' && crmSummary.overdue + dueTaskCount > 0 ? (
+              <span className="tab-count">{crmSummary.overdue + dueTaskCount}</span>
+            ) : null}
           </button>
         ))}
       </nav>
@@ -350,9 +357,11 @@ export const App = () => {
 
       {section === 'crm' ? (
         <CrmView
+          data={data}
           followUps={followUps}
           interactions={data.interactions}
           onAddProspect={(input) => saveData(addProspect(data, input))}
+          onCompleteTask={(taskId) => saveData(completeTask(data, taskId))}
           onDeleteInteraction={handleDeleteInteraction}
           onDeleteProspect={handleDeleteProspect}
           onLogInteraction={(input) => saveData(logInteraction(data, input))}

@@ -1,26 +1,29 @@
 import type {
   CrmSummary,
+  FinanceData,
   Interaction,
   InteractionChannel,
   Prospect,
   ProspectFollowUp,
   ProspectTemperature,
 } from '@freepilot/finance-core';
-import { interactionsForProspect } from '@freepilot/finance-core';
-import { useState } from 'react';
+import { interactionsForProspect, networkFollowUps } from '@freepilot/finance-core';
+import { useMemo, useState } from 'react';
 import { EmptyState, Panel } from '../../components/Panel';
 import { FollowUpsView } from './FollowUpsView';
 import { PipelineView } from './PipelineView';
 import { ProspectDetailView } from './ProspectDetailView';
 import { ProspectFormView } from './ProspectFormView';
+import { TodayView } from './TodayView';
 
-type CrmPage = 'followUps' | 'pipeline' | 'new';
+type CrmPage = 'today' | 'network' | 'pipeline' | 'new';
 
 type ProspectChanges = Partial<
   Pick<Prospect, 'company' | 'name' | 'nextFollowUpDate' | 'notes' | 'source' | 'status' | 'temperature'>
 >;
 
 type Props = {
+  data: FinanceData;
   followUps: ProspectFollowUp[];
   summary: CrmSummary;
   interactions: Interaction[];
@@ -43,18 +46,22 @@ type Props = {
     nextFollowUpDate: string | null;
   }) => void;
   onDeleteInteraction: (interaction: Interaction) => void;
+  onCompleteTask: (taskId: string) => void;
 };
 
 const pages: [CrmPage, string][] = [
-  ['followUps', 'À relancer'],
+  ['today', 'Aujourd’hui'],
+  ['network', 'Réseau'],
   ['pipeline', 'Pipeline'],
   ['new', 'Ajouter'],
 ];
 
 export function CrmView({
+  data,
   followUps,
   interactions,
   onAddProspect,
+  onCompleteTask,
   onDeleteInteraction,
   onDeleteProspect,
   onLogInteraction,
@@ -62,8 +69,11 @@ export function CrmView({
   summary,
   today,
 }: Props) {
-  const [page, setPage] = useState<CrmPage>('followUps');
+  const [page, setPage] = useState<CrmPage>('today');
   const [selectedProspectId, setSelectedProspectId] = useState<string | null>(null);
+  // R8 : le nurturing réseau ne couvre plus un prospect dès qu'une affaire
+  // ouverte le pilote — voir crm/followUps.ts.
+  const network = useMemo(() => networkFollowUps(data, today), [data, today]);
 
   // La sélection ne survit pas à la suppression du prospect.
   const selected = followUps.find((followUp) => followUp.prospect.id === selectedProspectId) ?? null;
@@ -93,7 +103,7 @@ export function CrmView({
         {pages.map(([id, label]) => (
           <button className={page === id ? 'active' : ''} key={id} onClick={() => setPage(id)} type="button">
             {label}
-            {id === 'followUps' && summary.overdue > 0 ? <span className="tab-count">{summary.overdue}</span> : null}
+            {id === 'network' && summary.overdue > 0 ? <span className="tab-count">{summary.overdue}</span> : null}
           </button>
         ))}
       </nav>
@@ -120,8 +130,12 @@ export function CrmView({
         </section>
       ) : null}
 
-      {page === 'followUps' && followUps.length > 0 ? (
-        <FollowUpsView followUps={followUps} onOpen={setSelectedProspectId} summary={summary} />
+      {page === 'today' && followUps.length > 0 ? (
+        <TodayView data={data} onCompleteTask={onCompleteTask} onOpenProspect={setSelectedProspectId} today={today} />
+      ) : null}
+
+      {page === 'network' && followUps.length > 0 ? (
+        <FollowUpsView followUps={network} onOpen={setSelectedProspectId} summary={summary} />
       ) : null}
 
       {page === 'pipeline' && followUps.length > 0 ? (
