@@ -19,10 +19,11 @@ import { OpportunityFormView } from './OpportunityFormView';
 import { PipelineView } from './PipelineView';
 import { ProspectDetailView } from './ProspectDetailView';
 import { ProspectFormView } from './ProspectFormView';
+import { QuickCaptureView, type QuickCaptureFormInput } from './QuickCaptureView';
 import { TemperatureView } from './TemperatureView';
 import { TodayView } from './TodayView';
 
-type CrmPage = 'today' | 'network' | 'pipeline' | 'temperature' | 'channels' | 'new';
+type CrmPage = 'today' | 'network' | 'pipeline' | 'temperature' | 'channels' | 'capture' | 'new';
 
 type ProspectChanges = Partial<
   Pick<Prospect, 'company' | 'name' | 'nextFollowUpDate' | 'notes' | 'source' | 'status' | 'temperature'>
@@ -62,6 +63,7 @@ type Props = {
   onCreateOpportunity: (input: AddOpportunityInput) => void;
   onUpdateOpportunity: (opportunityId: string, input: UpdateOpportunityInput) => void;
   onDeleteOpportunity: (opportunity: Opportunity) => void;
+  onQuickCapture: (input: QuickCaptureFormInput) => void;
 };
 
 const pages: [CrmPage, string][] = [
@@ -87,6 +89,7 @@ export function CrmView({
   onDeleteOpportunity,
   onDeleteProspect,
   onLogInteraction,
+  onQuickCapture,
   onUpdateOpportunity,
   onUpdateProspect,
   summary,
@@ -177,21 +180,42 @@ export function CrmView({
         />
       ) : null}
 
-      {page !== 'new' && followUps.length === 0 ? (
+      {page === 'capture' ? (
+        <QuickCaptureView
+          onCancel={() => setPage('today')}
+          onCapture={(input) => {
+            onQuickCapture(input);
+            setPage('today');
+          }}
+        />
+      ) : null}
+
+      {page !== 'new' && page !== 'capture' && followUps.length === 0 ? (
         <section className="details-stack single">
           <Panel title="Suivi client">
             <EmptyState>
               Aucun prospect enregistré. Ajoute un contact pour que ses relances remontent ici.
             </EmptyState>
-            <button className="primary-button" onClick={() => setPage('new')} type="button">
-              Ajouter un prospect
-            </button>
+            <div className="button-row">
+              <button className="primary-button" onClick={() => setPage('new')} type="button">
+                Ajouter un prospect
+              </button>
+              <button className="secondary-button" onClick={() => setPage('capture')} type="button">
+                Capture terrain
+              </button>
+            </div>
           </Panel>
         </section>
       ) : null}
 
       {page === 'today' && followUps.length > 0 ? (
-        <TodayView data={data} onCompleteTask={onCompleteTask} onOpenProspect={setSelectedProspectId} today={today} />
+        <TodayView
+          data={data}
+          onCompleteTask={onCompleteTask}
+          onOpenCapture={() => setPage('capture')}
+          onOpenProspect={setSelectedProspectId}
+          today={today}
+        />
       ) : null}
 
       {page === 'network' && followUps.length > 0 ? (

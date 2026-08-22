@@ -11,6 +11,7 @@ import {
   buildFinanceSeries,
   buildProspectFollowUps,
   cancelTask,
+  captureFieldProspect,
   completeTask,
   createTransfer,
   deleteAREMonth,
@@ -386,6 +387,7 @@ export const App = () => {
           onDeleteOpportunity={handleDeleteOpportunity}
           onDeleteProspect={handleDeleteProspect}
           onLogInteraction={(input) => saveData(logInteraction(data, input))}
+          onQuickCapture={(input) => saveData(captureFieldProspect(data, { ...input, createdAt: currentDay }))}
           onUpdateOpportunity={(opportunityId, input) => saveData(updateOpportunity(data, opportunityId, input, currentDay))}
           onUpdateProspect={(prospectId, input) => saveData(updateProspect(data, prospectId, input))}
           summary={crmSummary}

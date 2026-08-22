@@ -19,6 +19,7 @@ type Props = {
   today: string;
   onOpenProspect: (prospectId: string) => void;
   onCompleteTask: (taskId: string) => void;
+  onOpenCapture: () => void;
 };
 
 /**
@@ -29,7 +30,7 @@ type Props = {
  */
 const HORIZON_LABELS = ['30 j', '60 j', '90 j'];
 
-export function TodayView({ data, onCompleteTask, onOpenProspect, today }: Props) {
+export function TodayView({ data, onCompleteTask, onOpenCapture, onOpenProspect, today }: Props) {
   const [expandedAlert, setExpandedAlert] = useState<AlertKey | null>(null);
 
   const prospectById = useMemo(() => new Map(data.prospects.map((prospect) => [prospect.id, prospect])), [data.prospects]);
@@ -59,6 +60,12 @@ export function TodayView({ data, onCompleteTask, onOpenProspect, today }: Props
         <strong>{tasks.length}</strong>
         <p>{tasks.length === 0 ? 'Rien à faire aujourd’hui.' : 'En retard et dues aujourd’hui, priorité haute en tête.'}</p>
       </article>
+
+      <div className="quick-actions">
+        <button onClick={onOpenCapture} type="button">
+          Capture terrain
+        </button>
+      </div>
 
       <Panel title="Tâches">
         {tasks.length === 0 ? (
