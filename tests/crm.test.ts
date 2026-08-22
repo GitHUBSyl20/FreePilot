@@ -3,6 +3,7 @@ import {
   addDays,
   addOpportunity,
   addProspect,
+  addTask,
   buildProspectFollowUps,
   daysBetween,
   defaultSettings,
@@ -311,6 +312,29 @@ describe('opérations CRM', () => {
     // La facture reste, simplement détachée : elle porte du CA réel.
     expect(data.invoices.find((invoice) => invoice.id === 'inv-4')?.prospectId).toBeNull();
     expect(data.invoices).toHaveLength(4);
+  });
+
+  it('supprime aussi les opportunités du prospect, leur historique de stades et leurs tâches', () => {
+    const withOpportunity = addOpportunity(portfolio(), {
+      prospectId: 'p-hot',
+      title: 'Automatisation reporting',
+      pipeline: 'projet',
+      stageId: 'discovery',
+      createdAt: TODAY,
+    });
+    const opportunityId = withOpportunity.opportunities[0].id;
+    const withTask = addTask(withOpportunity, {
+      prospectId: 'p-hot',
+      opportunityId,
+      label: 'Envoyer le devis',
+      dueDate: TODAY,
+    });
+
+    const data = deleteProspect(withTask, 'p-hot');
+
+    expect(data.opportunities.some((opportunity) => opportunity.prospectId === 'p-hot')).toBe(false);
+    expect(data.stageChanges.some((change) => change.opportunityId === opportunityId)).toBe(false);
+    expect(data.tasks.some((task) => task.prospectId === 'p-hot')).toBe(false);
   });
 
   it('supprime un contact isolé de l’historique', () => {

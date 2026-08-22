@@ -460,12 +460,25 @@ export const updateProspect = (
  * elles, restent : elles portent du chiffre d'affaires réel et sont seulement
  * détachées du prospect.
  */
-export const deleteProspect = (data: FinanceData, prospectId: string): FinanceData => ({
-  ...data,
-  prospects: data.prospects.filter((prospect) => prospect.id !== prospectId),
-  interactions: data.interactions.filter((interaction) => interaction.prospectId !== prospectId),
-  invoices: data.invoices.map((invoice) => (invoice.prospectId === prospectId ? { ...invoice, prospectId: null } : invoice)),
-});
+export const deleteProspect = (data: FinanceData, prospectId: string): FinanceData => {
+  const orphanedOpportunityIds = new Set(
+    data.opportunities.filter((opportunity) => opportunity.prospectId === prospectId).map((opportunity) => opportunity.id),
+  );
+
+  return {
+    ...data,
+    prospects: data.prospects.filter((prospect) => prospect.id !== prospectId),
+    interactions: data.interactions.filter((interaction) => interaction.prospectId !== prospectId),
+    invoices: data.invoices.map((invoice) => (invoice.prospectId === prospectId ? { ...invoice, prospectId: null } : invoice)),
+    // Les opportunités du prospect n'ont de sens que rattachées à lui : à la
+    // différence des factures (qui portent du CA réel et sont seulement
+    // détachées), on les supprime avec leur historique de stades et leurs
+    // tâches, sinon elles restent orphelines dans le pipeline pour toujours.
+    opportunities: data.opportunities.filter((opportunity) => opportunity.prospectId !== prospectId),
+    stageChanges: data.stageChanges.filter((change) => !orphanedOpportunityIds.has(change.opportunityId)),
+    tasks: data.tasks.filter((task) => task.prospectId !== prospectId),
+  };
+};
 
 /**
  * Enregistre un contact. La relance suivante est repositionnée dans la foulée :
