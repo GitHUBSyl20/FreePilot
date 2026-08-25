@@ -10,6 +10,7 @@ import {
   addTask,
   applyProspectionImport,
   buildFinanceSeries,
+  buildForecastMonths,
   buildProspectFollowUps,
   cancelTask,
   captureFieldProspect,
@@ -59,13 +60,14 @@ import { CrmView } from './views/crm/CrmView';
 import { ProspectionImportView } from './views/crm/ProspectionImportView';
 import { DashboardView } from './views/DashboardView';
 import { DataView } from './views/DataView';
+import { ForecastView } from './views/ForecastView';
 import { InvoicesView } from './views/InvoicesView';
 import { RecurringChargesView } from './views/RecurringChargesView';
 import { SettingsView } from './views/SettingsView';
 import { TransactionsView } from './views/TransactionsView';
 
 type Section = 'finances' | 'crm' | 'settings';
-type FinancePage = 'dashboard' | 'accounts' | 'invoices' | 'transactions' | 'charges' | 'are';
+type FinancePage = 'dashboard' | 'accounts' | 'invoices' | 'transactions' | 'charges' | 'are' | 'forecast';
 type SettingsPage = 'calculs' | 'cloud' | 'donnees';
 
 const sections: [Section, string][] = [
@@ -81,6 +83,7 @@ const financePages: [FinancePage, string][] = [
   ['transactions', 'Opérations'],
   ['charges', 'Charges'],
   ['are', 'ARE'],
+  ['forecast', 'Prévisionnel'],
 ];
 
 const settingsPages: [SettingsPage, string][] = [
@@ -142,6 +145,10 @@ export const App = () => {
 
   const projection = useMemo(() => (data ? projectDashboard(data, currentMonth) : null), [currentMonth, data]);
   const series = useMemo(() => (data ? buildFinanceSeries(data, currentMonth) : []), [currentMonth, data]);
+  const forecastMonths = useMemo(
+    () => (data ? buildForecastMonths(data, currentMonth, 6) : []),
+    [currentMonth, data],
+  );
   const followUps = useMemo(() => (data ? buildProspectFollowUps(data, currentDay) : []), [currentDay, data]);
   const crmSummary = useMemo(() => (data ? summarizeCrm(data, currentDay) : null), [currentDay, data]);
   // Compteur d'onglet CRM : relances réseau dues + tâches dues, sans double
@@ -374,6 +381,8 @@ export const App = () => {
               series={series}
             />
           ) : null}
+
+          {financePage === 'forecast' ? <ForecastView months={forecastMonths} /> : null}
         </>
       ) : null}
 

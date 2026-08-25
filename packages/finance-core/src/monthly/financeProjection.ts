@@ -126,9 +126,12 @@ export const projectMonthlyOutlook = (data: FinanceData, month: string): Monthly
   const variableExpenses = variableExpensesForMonth(data, month);
   const otherIncome = otherIncomeForMonth(data, month);
 
+  // L'impôt généré par le CA de ce mois n'est prélevé que le mois suivant
+  // (même décalage que l'Urssaf, déjà appliqué dans cashflow.netFinal) : c'est
+  // l'impôt hérité du mois précédent qui pèse sur le reste à vivre de celui-ci.
   const resteAVivreValue = roundCurrency(
     cashflow.netFinal.value -
-      cashflow.incomeTaxProvision.value -
+      cashflow.carriedIncomeTax -
       recurringCharges.total -
       variableExpenses +
       otherIncome,
@@ -144,10 +147,10 @@ export const projectMonthlyOutlook = (data: FinanceData, month: string): Monthly
     otherIncome,
     resteAVivre: {
       value: resteAVivreValue,
-      formula: `${cashflow.netFinal.value} - ${cashflow.incomeTaxProvision.value} - ${recurringCharges.total} - ${variableExpenses} + ${otherIncome}`,
+      formula: `${cashflow.netFinal.value} - ${cashflow.carriedIncomeTax} - ${recurringCharges.total} - ${variableExpenses} + ${otherIncome}`,
       assumptions: [
         'Trésorerie du mois',
-        'Provision impôt',
+        'Impôt dû sur le CA du mois précédent',
         'Charges fixes',
         'Dépenses ponctuelles',
         'Encaissements hors CA',

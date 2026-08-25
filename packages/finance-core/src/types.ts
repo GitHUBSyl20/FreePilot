@@ -97,11 +97,22 @@ export type MonthlyCashflow = {
   /** Jours de droits consommés, décomptés sur l'ARE effective. */
   areDaysConsumed: number;
   areDaysPreserved: number;
+  /** Urssaf générée par le CA de ce mois — informatif, payable le mois suivant. */
   urssafProvision: CalculationDetail;
   /** Mois de paiement effectif de l'Urssaf due sur le CA de ce mois. */
   urssafPaymentMonth: string;
+  /**
+   * Urssaf héritée du mois précédent, effectivement prélevée ce mois-ci sur
+   * la trésorerie (`netFinal`). Même décalage M → M+1 que `carriedDeduction`
+   * pour l'ARE : l'Urssaf sur le CA d'un mois ne sort jamais du compte avant
+   * le mois suivant.
+   */
+  carriedUrssaf: number;
+  /** Impôt généré par le CA de ce mois — informatif, prélevé le mois suivant. */
   incomeTaxProvision: CalculationDetail;
-  /** Trésorerie du mois : CA − Urssaf + ARE effective. */
+  /** Impôt hérité du mois précédent, effectivement prélevé ce mois-ci sur le reste à vivre. Même logique que `carriedUrssaf`. */
+  carriedIncomeTax: number;
+  /** Trésorerie du mois : CA − Urssaf héritée du mois précédent + ARE effective. */
   netFinal: CalculationDetail;
 };
 
@@ -397,6 +408,14 @@ export type DashboardProjection = {
     /** Voir `MonthlyOutlook.weightedPipelineForecast` : jamais du CA encaissé. */
     pipelinePondere: number;
     mrrPrevisionnel: number;
+    /**
+     * Argent réellement disponible aujourd'hui : soldes des comptes pro et
+     * perso, hors provisions (Urssaf, impôt) et hors épargne. Contrairement à
+     * `resteAVivre` (un flux mensuel qui repart de zéro chaque mois), ce
+     * chiffre lit directement les comptes — modifier un solde le fait bouger,
+     * volontairement.
+     */
+    tresorerieDisponible: number;
   };
   formulas: {
     are: string;
@@ -405,6 +424,48 @@ export type DashboardProjection = {
   outlook: MonthlyOutlook;
   accountBalances: AccountBalance[];
   recentTransactions: Transaction[];
+};
+
+/**
+ * Un mois du prévisionnel (`buildForecastMonths`) : réel pour le mois
+ * courant, estimé au-delà à partir du pipeline pondéré et du MRR déjà gagné.
+ */
+export type ForecastMonth = {
+  month: string;
+  /** `false` pour le mois courant (données réelles), `true` au-delà. */
+  isEstimated: boolean;
+  /**
+   * CA réellement encaissé pour le mois courant ; au-delà, estimation =
+   * `facturesEnAttente` + `pipelinePondere` + `mrrPrevisionnel` du mois.
+   */
+  collectedRevenue: number;
+  /**
+   * Factures déjà émises, pas encore payées, attendues ce mois (à leur
+   * échéance saisie, ou repliées sur le mois courant si aucune échéance
+   * n'est renseignée). Informatif pour le mois courant, où il ne modifie
+   * jamais `resteAVivre` (règle « facturé ≠ encaissé ») ; inclus dans
+   * `collectedRevenue` pour les mois estimés, où toute la ligne est déjà une
+   * projection.
+   */
+  facturesEnAttente: number;
+  /** Pipeline CRM pondéré de ce mois, même réserve que `facturesEnAttente`. */
+  pipelinePondere: number;
+  /** MRR déjà gagné, même réserve que `facturesEnAttente`. */
+  mrrPrevisionnel: number;
+  effectiveARE: number;
+  /** Charges fixes pro + perso, supposées constantes sur tout l'horizon. */
+  chargesFixes: number;
+  /** Reste à vivre du mois : réel pour le mois courant, estimé au-delà. */
+  resteAVivre: number;
+  /**
+   * Trésorerie disponible (pro + perso) en fin de mois : solde réel
+   * d'aujourd'hui pour le mois courant. Au-delà, un `resteAVivre` positif est
+   * par définition destiné à être vécu, pas épargné : il ne fait pas monter
+   * ce chiffre. Seul un mois déficitaire l'entame, puisqu'il faut alors puiser
+   * dans la réserve pour boucler les charges — d'où un cumul qui ne descend
+   * (jamais ne monte) au fil des mois estimés.
+   */
+  cumulativeCash: number;
 };
 
 /** Degré d'urgence d'une relance, une fois la date d'échéance connue. */

@@ -14,6 +14,7 @@ import type {
   RecurringCharge,
   Transaction,
 } from './types';
+import { roundCurrency } from './calculations/common';
 import { todayISO } from './crm/day';
 import { projectRemainingAREDays } from './monthly/cashflowSeries';
 import { chargeDebitAccountId } from './monthly/chargePosting';
@@ -36,6 +37,18 @@ export const calculateAccountBalances = (data: FinanceData): AccountBalance[] =>
 
     return { ...account, balance: Math.round(balance * 100) / 100 };
   });
+
+/**
+ * Argent réellement disponible aujourd'hui : comptes pro et perso, hors
+ * provisions déjà fléchées (Urssaf, impôt) et hors épargne de moyen terme —
+ * sinon on compterait comme « disponible » de l'argent déjà réservé ailleurs.
+ */
+export const calculateAvailableCash = (accountBalances: AccountBalance[]): number =>
+  roundCurrency(
+    accountBalances
+      .filter((account) => account.kind === 'professional' || account.kind === 'personal')
+      .reduce((sum, account) => sum + account.balance, 0),
+  );
 
 /** Somme des mouvements enregistrés sur un compte, hors solde d'ouverture. */
 const movementsForAccount = (data: FinanceData, accountId: string): number =>
@@ -105,6 +118,7 @@ export const projectDashboard = (data: FinanceData, month: string = getCurrentMo
   // Les jours de droits se décomptent sur l'ensemble des mois écoulés,
   // pas sur le seul mois affiché.
   const consumedUpToMonth = buildFinanceSeries(data, month).filter((entry) => entry.month <= month);
+  const accountBalances = calculateAccountBalances(data);
 
   return {
     month,
@@ -120,13 +134,14 @@ export const projectDashboard = (data: FinanceData, month: string = getCurrentMo
       joursAreRestants: projectRemainingAREDays(consumedUpToMonth, data.settings),
       pipelinePondere: outlook.weightedPipelineForecast,
       mrrPrevisionnel: outlook.mrrForecast,
+      tresorerieDisponible: calculateAvailableCash(accountBalances),
     },
     formulas: {
       are: outlook.cashflow.theoreticalARE.formula,
       resteAVivre: outlook.resteAVivre.formula,
     },
     outlook,
-    accountBalances: calculateAccountBalances(data),
+    accountBalances,
     recentTransactions: [...data.transactions]
       .sort((left, right) => right.date.localeCompare(left.date))
       .slice(0, 8),

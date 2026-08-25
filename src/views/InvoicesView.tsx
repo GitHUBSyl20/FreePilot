@@ -8,6 +8,7 @@ type InvoiceInput = {
   totalTTC: number;
   prospectId: string | null;
   issueDate?: string;
+  dueDate?: string | null;
   paymentDate?: string;
 };
 
@@ -28,11 +29,13 @@ type Props = {
  * tant que la facture n'est pas réellement émise.
  */
 export const statusSummary = (invoice: EditableInvoice): string => {
+  const dueSuffix = invoice.dueDate ? ` · échéance ${formatDate(invoice.dueDate)}` : '';
+
   if (invoice.status === 'paid' && invoice.paymentDate) return `Payée le ${formatDate(invoice.paymentDate)}`;
   if (invoice.status === 'draft') return `Brouillon · à facturer le ${formatDate(invoice.issueDate)}`;
-  if (invoice.status === 'overdue') return `En retard · émise le ${formatDate(invoice.issueDate)}`;
+  if (invoice.status === 'overdue') return `En retard · émise le ${formatDate(invoice.issueDate)}${dueSuffix}`;
   if (invoice.status === 'cancelled') return 'Annulée';
-  return `Émise le ${formatDate(invoice.issueDate)}`;
+  return `Émise le ${formatDate(invoice.issueDate)}${dueSuffix}`;
 };
 
 export function InvoicesView({
@@ -50,6 +53,7 @@ export function InvoicesView({
   const [amount, setAmount] = useState('');
   const [prospectId, setProspectId] = useState('');
   const [issueDate, setIssueDate] = useState(today());
+  const [dueDate, setDueDate] = useState('');
   const [paymentDate, setPaymentDate] = useState('');
   // Facture en cours de marquage « payée » : on demande la date réelle
   // d'encaissement au lieu de forcer la date du jour, sinon impossible de
@@ -66,6 +70,7 @@ export function InvoicesView({
     setAmount('');
     setProspectId('');
     setIssueDate(today());
+    setDueDate('');
     setPaymentDate('');
   };
 
@@ -73,7 +78,13 @@ export function InvoicesView({
     const parsedAmount = parseAmount(amount);
     if (!parsedAmount) return;
 
-    const input: InvoiceInput = { clientName, totalTTC: parsedAmount, prospectId: prospectId || null, issueDate };
+    const input: InvoiceInput = {
+      clientName,
+      totalTTC: parsedAmount,
+      prospectId: prospectId || null,
+      issueDate,
+      dueDate: dueDate || null,
+    };
     if (editingId) onUpdate(editingId, paymentDate ? { ...input, paymentDate } : input);
     else onCreate(input);
 
@@ -86,6 +97,7 @@ export function InvoicesView({
     setAmount(String(invoice.totalTTC));
     setProspectId(invoice.prospectId ?? '');
     setIssueDate(invoice.issueDate);
+    setDueDate(invoice.dueDate ?? '');
     setPaymentDate(invoice.status === 'paid' ? invoice.paymentDate ?? '' : '');
   };
 
@@ -116,6 +128,13 @@ export function InvoicesView({
           onChange={(event) => setIssueDate(event.target.value)}
           type="date"
           value={issueDate}
+        />
+        <label htmlFor="invoice-due-date">Échéance (optionnel)</label>
+        <input
+          id="invoice-due-date"
+          onChange={(event) => setDueDate(event.target.value)}
+          type="date"
+          value={dueDate}
         />
         {prospects.length > 0 ? (
           <>

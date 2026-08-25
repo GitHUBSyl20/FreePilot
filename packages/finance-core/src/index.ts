@@ -23,6 +23,7 @@ export * from './crm/weightedPipeline';
 export * from './monthly/cashflowSeries';
 export * from './monthly/chargePosting';
 export * from './monthly/financeProjection';
+export * from './monthly/forecast';
 export * from './monthly/month';
 export * from './monthly/snapshot';
 export * from './sync/fingerprint';

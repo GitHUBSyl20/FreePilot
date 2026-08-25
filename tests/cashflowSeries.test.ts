@@ -90,12 +90,33 @@ describe('série mensuelle de trésorerie', () => {
     expect(byMonth['2026-08'].incomeTaxProvision.value).toBe(77.32);
   });
 
-  it('calcule le net final = CA − Urssaf + ARE effective', () => {
-    expect(byMonth['2026-04'].netFinal.value).toBe(1676.34);
-    expect(byMonth['2026-05'].netFinal.value).toBe(2421.8);
-    expect(byMonth['2026-06'].netFinal.value).toBe(1145.6);
-    expect(byMonth['2026-07'].netFinal.value).toBe(2193.75);
-    expect(byMonth['2026-08'].netFinal.value).toBe(1390.23);
+  it('calcule le net final = CA − Urssaf héritée du mois précédent + ARE effective', () => {
+    // Avril est le premier mois de la série : aucune Urssaf héritée, donc 0 y est prélevé.
+    expect(byMonth['2026-04'].netFinal.value).toBe(1746);
+    // Mai prélève l'Urssaf générée par le CA d'avril (69,66) : 1900 − 69,66 + 1012.
+    expect(byMonth['2026-05'].netFinal.value).toBe(2842.34);
+    // Juin prélève celle de mai (490,2) : 800 − 490,2 + 552.
+    expect(byMonth['2026-06'].netFinal.value).toBe(861.8);
+    // Juillet prélève celle de juin (206,4) : 1625 − 206,4 + 988.
+    expect(byMonth['2026-07'].netFinal.value).toBe(2406.6);
+    // Août prélève celle de juillet (419,25) : 1065 − 419,25 + 600.
+    expect(byMonth['2026-08'].netFinal.value).toBe(1245.75);
+  });
+
+  it('reporte l’Urssaf générée par un mois sur le netFinal du mois suivant', () => {
+    expect(byMonth['2026-04'].carriedUrssaf).toBe(0);
+    expect(byMonth['2026-05'].carriedUrssaf).toBe(69.66);
+    expect(byMonth['2026-06'].carriedUrssaf).toBe(490.2);
+    expect(byMonth['2026-07'].carriedUrssaf).toBe(206.4);
+    expect(byMonth['2026-08'].carriedUrssaf).toBe(419.25);
+  });
+
+  it('reporte l’impôt généré par un mois sur le mois suivant, même logique que l’Urssaf', () => {
+    expect(byMonth['2026-04'].carriedIncomeTax).toBe(0);
+    expect(byMonth['2026-05'].carriedIncomeTax).toBe(19.6);
+    expect(byMonth['2026-06'].carriedIncomeTax).toBe(137.94);
+    expect(byMonth['2026-07'].carriedIncomeTax).toBe(58.08);
+    expect(byMonth['2026-08'].carriedIncomeTax).toBe(117.98);
   });
 
   it('décompte les jours sur l’ARE réellement versée, pas sur la théorique', () => {
@@ -156,6 +177,19 @@ describe('cas limites de la série', () => {
       '2026-08',
     ]);
     expect(series[1].carriedDeduction).toBe(124.74);
+  });
+
+  it('accepte une Urssaf et un impôt hérités d’un mois hors série', () => {
+    const [month] = buildMonthlyCashflowSeries(
+      [{ month: '2026-05', collectedRevenue: 0, fullMonthlyARE: 1416 }],
+      settings,
+      { carriedUrssaf: 258, carriedIncomeTax: 72.6 },
+    );
+
+    // 0 − 258 + 1416.
+    expect(month.netFinal.value).toBe(1158);
+    expect(month.carriedUrssaf).toBe(258);
+    expect(month.carriedIncomeTax).toBe(72.6);
   });
 
   it('accepte une déduction héritée d’un mois hors série', () => {

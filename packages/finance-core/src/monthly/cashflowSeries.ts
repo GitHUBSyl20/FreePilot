@@ -11,12 +11,18 @@ export type CashflowSeriesOptions = {
    * son ARE. Nécessaire quand la série ne démarre pas au début des droits.
    */
   carriedDeduction?: number;
+  /** Urssaf générée par le mois précédant le premier de la série, à prélever sur son netFinal. */
+  carriedUrssaf?: number;
+  /** Impôt généré par le mois précédant le premier de la série, à prélever sur son reste à vivre. */
+  carriedIncomeTax?: number;
 };
 
 /**
  * Enchaîne les mois en respectant les décalages réels :
  * - la déduction ARE générée par le CA du mois M frappe l'ARE versée en M+1 ;
- * - l'Urssaf due sur le CA du mois M est payée en M+1.
+ * - l'Urssaf due sur le CA du mois M est payée en M+1, et sort donc de la
+ *   trésorerie (`netFinal`) de M+1, jamais de celle de M ;
+ * - même règle pour l'impôt, prélevé sur le reste à vivre de M+1.
  *
  * C'est la logique du tableur de référence, à une normalisation près :
  * l'ARE pleine est prise telle qu'elle est saisie pour chaque mois.
@@ -28,6 +34,8 @@ export const buildMonthlyCashflowSeries = (
 ): MonthlyCashflow[] => {
   const ordered = [...records].sort((left, right) => compareMonths(left.month, right.month));
   let carriedDeduction = safeNumber(options.carriedDeduction);
+  let carriedUrssaf = safeNumber(options.carriedUrssaf);
+  let carriedIncomeTax = safeNumber(options.carriedIncomeTax);
 
   return ordered.map((record) => {
     const collectedRevenue = safeNumber(record.collectedRevenue);
@@ -51,7 +59,8 @@ export const buildMonthlyCashflowSeries = (
     // est connue : c'est elle qui a effectivement consommé le capital.
     const { consumed, preserved } = calculateAREDays(effectiveARE, settings);
 
-    const netFinalValue = roundCurrency(collectedRevenue - urssafProvision.value + effectiveARE);
+    const roundedCarriedUrssaf = roundCurrency(carriedUrssaf);
+    const netFinalValue = roundCurrency(collectedRevenue - roundedCarriedUrssaf + effectiveARE);
 
     const cashflow: MonthlyCashflow = {
       month: record.month,
@@ -65,16 +74,20 @@ export const buildMonthlyCashflowSeries = (
       areDaysPreserved: preserved,
       urssafProvision,
       urssafPaymentMonth: addMonths(record.month, 1),
+      carriedUrssaf: roundedCarriedUrssaf,
       incomeTaxProvision,
+      carriedIncomeTax: roundCurrency(carriedIncomeTax),
       netFinal: {
         value: netFinalValue,
-        formula: `${collectedRevenue} - ${urssafProvision.value} + ${effectiveARE}`,
-        assumptions: ['CA encaissé', 'Provision Urssaf', 'ARE effective'],
+        formula: `${collectedRevenue} - ${roundedCarriedUrssaf} + ${effectiveARE}`,
+        assumptions: ['CA encaissé', 'Urssaf due sur le CA du mois précédent', 'ARE effective'],
         warnings: [],
       },
     };
 
     carriedDeduction = cashflow.areDeduction.value;
+    carriedUrssaf = urssafProvision.value;
+    carriedIncomeTax = incomeTaxProvision.value;
     return cashflow;
   });
 };

@@ -698,6 +698,138 @@ textarea {
   background: #fee2e2;
 }
 
+.badge.estimated {
+  color: #3730a3;
+  background: #e0e7ff;
+}
+
+/*
+ * Hypothèses du prévisionnel, en formules alignées plutôt qu'en phrase à
+ * décortiquer. `dt`/`dd` en enfants directs de la grille (plutôt que groupés
+ * ligne par ligne) pour que toutes les colonnes — et donc tous les « = » —
+ * s'alignent d'une ligne à l'autre.
+ */
+.forecast-formulas {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  margin: 6px 0 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgb(20 33 61 / 4%);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.forecast-formulas dt {
+  color: #14213d;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.forecast-formulas dd {
+  margin: 0;
+  color: #475467;
+}
+
+/*
+ * Timeline horizontale du prévisionnel : une carte par mois, largeur fixe,
+ * défilement tactile/molette au lieu d'un empilement vertical — plus lisible
+ * pour comparer des mois entre eux d'un coup d'œil.
+ */
+.forecast-timeline {
+  display: flex;
+  gap: 10px;
+  margin: 8px -2px 0;
+  padding: 2px 2px 8px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+.forecast-card {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 6px;
+  width: 136px;
+  padding: 12px;
+  border: 1px solid rgb(20 33 61 / 8%);
+  border-radius: 16px;
+  background: rgb(255 255 255 / 92%);
+  scroll-snap-align: start;
+}
+
+.forecast-card-month {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.forecast-card-bar-track {
+  display: flex;
+  align-items: flex-end;
+  height: 64px;
+  border-radius: 10px;
+  background: rgb(20 33 61 / 6%);
+  overflow: hidden;
+}
+
+.forecast-card-bar {
+  width: 100%;
+  border-radius: 10px 10px 0 0;
+  background: linear-gradient(180deg, #3157ff, #4263eb);
+}
+
+.forecast-card-bar.negative {
+  background: linear-gradient(180deg, #ef4444, #b91c1c);
+}
+
+.forecast-card-value {
+  color: #14213d;
+  font-size: 0.92rem;
+  letter-spacing: -0.03em;
+}
+
+.forecast-card-value.negative {
+  color: #b91c1c;
+}
+
+.forecast-card-caption {
+  margin-top: -6px;
+  color: #667085;
+  font-size: 0.68rem;
+}
+
+.forecast-card-sources {
+  margin: 0;
+  color: #667085;
+  font-size: 0.68rem;
+  line-height: 1.3;
+}
+
+.forecast-card-cash {
+  display: grid;
+  gap: 2px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgb(20 33 61 / 8%);
+}
+
+.forecast-card-cash span {
+  color: #667085;
+  font-size: 0.68rem;
+}
+
+.forecast-card-cash strong {
+  color: #14213d;
+  font-size: 0.86rem;
+  letter-spacing: -0.03em;
+}
+
 /* Compteur de relances en retard, accolé au libellé de l'onglet. */
 .tab-count {
   display: inline-block;

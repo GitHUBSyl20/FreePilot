@@ -14,8 +14,14 @@ export function DashboardView({ projection, settings, onAddExpense, onAddInvoice
   const { kpis, outlook } = projection;
   const missingARE = outlook.cashflow.theoreticalARE.warnings.length > 0;
   const nextMonth = addMonths(projection.month, 1);
+  const previousMonth = addMonths(projection.month, -1);
 
   const indicators = [
+    {
+      label: 'Trésorerie disponible',
+      value: formatCurrency(kpis.tresorerieDisponible),
+      helper: 'Comptes pro + perso, hors provision et épargne — bouge avec le solde réel',
+    },
     { label: 'CA encaissé', value: formatCurrency(kpis.caEncaisse), helper: 'Factures payées ce mois-ci' },
     { label: 'Factures à encaisser', value: formatCurrency(kpis.facturesImpayees), helper: 'Émises, pas encore payées' },
     { label: 'ARE du mois', value: formatCurrency(kpis.areDuMois), helper: 'Versée si connue, sinon estimée' },
@@ -27,7 +33,11 @@ export function DashboardView({ projection, settings, onAddExpense, onAddInvoice
           ? `ARE pleine ${formatMonthComplement(nextMonth)} non saisie, onglet ARE`
           : 'Après déduction du CA de ce mois',
     },
-    { label: 'Trésorerie du mois', value: formatCurrency(kpis.netFinal), helper: 'CA − Urssaf + ARE' },
+    {
+      label: 'Trésorerie du mois',
+      value: formatCurrency(kpis.netFinal),
+      helper: `CA − Urssaf ${formatMonthComplement(previousMonth)} + ARE`,
+    },
     { label: 'Charges fixes', value: formatCurrency(kpis.chargesFixes), helper: 'Pro et perso confondues' },
     { label: 'Seuil coupure ARE', value: formatCurrency(kpis.seuilCoupureARE), helper: 'CA encaissé avant ARE à 0 €' },
     { label: 'Jours ARE restants', value: formatDays(kpis.joursAreRestants), helper: 'Capital de droits non consommés' },
@@ -38,7 +48,7 @@ export function DashboardView({ projection, settings, onAddExpense, onAddInvoice
       <section className={kpis.resteAVivre < 0 ? 'balance-card negative' : 'balance-card'}>
         <span>Reste à vivre</span>
         <strong>{formatCurrency(kpis.resteAVivre)}</strong>
-        <p>Trésorerie du mois, une fois l’impôt provisionné et toutes les charges payées.</p>
+        <p>Trésorerie du mois, une fois réglés l’Urssaf et l’impôt dus sur le CA du mois précédent, et toutes les charges payées.</p>
       </section>
 
       {missingARE ? (
@@ -74,8 +84,26 @@ export function DashboardView({ projection, settings, onAddExpense, onAddInvoice
         </Panel>
 
         <Panel collapsible title="Détail du mois">
-          <InfoRow label="Urssaf provisionnée" helper={`Payable en ${formatMonthLabel(outlook.cashflow.urssafPaymentMonth).toLowerCase()}`} value={formatCurrency(outlook.cashflow.urssafProvision.value)} />
-          <InfoRow label="Impôt provisionné" helper="11 % du revenu après abattement" value={formatCurrency(outlook.cashflow.incomeTaxProvision.value)} />
+          <InfoRow
+            label="Urssaf prélevée"
+            helper={`Due sur le CA ${formatMonthComplement(previousMonth)}`}
+            value={formatCurrency(outlook.cashflow.carriedUrssaf)}
+          />
+          <InfoRow
+            label="Impôt prélevé"
+            helper={`Dû sur le CA ${formatMonthComplement(previousMonth)}, 11 % après abattement`}
+            value={formatCurrency(outlook.cashflow.carriedIncomeTax)}
+          />
+          <InfoRow
+            label="Urssaf à venir"
+            helper={`Générée par le CA de ce mois-ci, prélevée en ${formatMonthLabel(outlook.cashflow.urssafPaymentMonth).toLowerCase()}`}
+            value={formatCurrency(outlook.cashflow.urssafProvision.value)}
+          />
+          <InfoRow
+            label="Impôt à venir"
+            helper={`Généré par le CA de ce mois-ci, prélevé en ${formatMonthLabel(outlook.cashflow.urssafPaymentMonth).toLowerCase()}`}
+            value={formatCurrency(outlook.cashflow.incomeTaxProvision.value)}
+          />
           <InfoRow label="Charges fixes pro" value={formatCurrency(outlook.recurringCharges.professional)} />
           <InfoRow label="Charges fixes perso" value={formatCurrency(outlook.recurringCharges.personal)} />
           <InfoRow label="Dépenses ponctuelles" value={formatCurrency(outlook.variableExpenses)} />

@@ -6,6 +6,7 @@ import {
   addOtherIncome,
   calculateARECutoff,
   calculateAccountBalances,
+  calculateAvailableCash,
   calculateCollectedRevenueFromInvoices,
   calculateEstimatedARE,
   calculateIncomeTaxProvision,
@@ -17,6 +18,7 @@ import {
   deleteTransaction,
   markInvoicePaid,
   projectDashboard,
+  setObservedAccountBalance,
   updateInvoice,
   updateTransaction,
 } from '@freepilot/finance-core';
@@ -169,6 +171,25 @@ describe('calculation rules', () => {
     expect(
       calculateAccountBalances(withRefund).find((account) => account.id === 'account-personal')?.balance,
     ).toBe(2046);
+  });
+
+  it('tresorerieDisponible sums professional and personal balances only, ignoring provision and savings', () => {
+    const data = createInitialFinanceData();
+    const balances = calculateAccountBalances(data);
+    const pro = balances.find((account) => account.id === 'account-pro')?.balance ?? 0;
+    const personal = balances.find((account) => account.id === 'account-personal')?.balance ?? 0;
+
+    expect(calculateAvailableCash(balances)).toBe(pro + personal);
+    expect(projectDashboard(data, '2026-05').kpis.tresorerieDisponible).toBe(pro + personal);
+
+    // Changer uniquement le solde perso doit faire bouger la trésorerie
+    // disponible, contrairement au reste à vivre (flux mensuel indépendant).
+    const withMorePersonal = setObservedAccountBalance(data, 'account-personal', personal + 1000);
+    const before = projectDashboard(data, '2026-05').kpis;
+    const after = projectDashboard(withMorePersonal, '2026-05').kpis;
+
+    expect(after.tresorerieDisponible).toBe(before.tresorerieDisponible + 1000);
+    expect(after.resteAVivre).toBe(before.resteAVivre);
   });
 
   it('updates a paid invoice and keeps its payment transaction in sync', () => {

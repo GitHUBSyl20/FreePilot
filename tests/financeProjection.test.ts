@@ -100,12 +100,13 @@ describe('projection mensuelle', () => {
     expect(outlook.cashflow.collectedRevenue).toBe(800);
     expect(outlook.cashflow.theoreticalARE.value).toBe(954);
     expect(outlook.cashflow.effectiveARE).toBe(600);
-    expect(outlook.cashflow.netFinal.value).toBe(1193.6);
+    // CA (800) − Urssaf due sur le CA de mai (1000 × 25,8 % = 258, prélevée en juin) + ARE (600).
+    expect(outlook.cashflow.netFinal.value).toBe(1142);
   });
 
-  it('déduit impôt, charges fixes et dépenses ponctuelles du reste à vivre', () => {
-    // 1193,60 − 58,08 − 800 − 50
-    expect(outlook.resteAVivre.value).toBe(285.52);
+  it('déduit l’impôt hérité du mois précédent, les charges fixes et les dépenses ponctuelles du reste à vivre', () => {
+    // 1142 − 72,6 (impôt dû sur le CA de mai, 1000 × 66 % × 11 %, prélevé en juin) − 800 − 50
+    expect(outlook.resteAVivre.value).toBe(219.4);
     expect(outlook.variableExpenses).toBe(50);
   });
 
@@ -128,8 +129,8 @@ describe('projection mensuelle', () => {
     expect(withRefund.cashflow.collectedRevenue).toBe(800);
     expect(withRefund.cashflow.urssafProvision.value).toBe(outlook.cashflow.urssafProvision.value);
     expect(withRefund.nextMonthARE).toBe(outlook.nextMonthARE);
-    // 285,52 + 946
-    expect(withRefund.resteAVivre.value).toBe(1231.52);
+    // 219,4 + 946
+    expect(withRefund.resteAVivre.value).toBe(1165.4);
   });
 
   it('projette l’ARE du mois suivant à partir du CA de ce mois', () => {
@@ -173,9 +174,9 @@ describe('dashboard', () => {
     expect(projection.kpis.facturesImpayees).toBe(450);
     expect(projection.kpis.areDuMois).toBe(600);
     expect(projection.kpis.areEstimeeM1).toBe(1046.4);
-    expect(projection.kpis.netFinal).toBe(1193.6);
+    expect(projection.kpis.netFinal).toBe(1142);
     expect(projection.kpis.chargesFixes).toBe(800);
-    expect(projection.kpis.resteAVivre).toBe(285.52);
+    expect(projection.kpis.resteAVivre).toBe(219.4);
   });
 
   it('laisse les factures en brouillon hors du CA et des factures à encaisser', () => {
