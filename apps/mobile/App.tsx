@@ -332,7 +332,7 @@ function DashboardScreen({
     <>
       <View style={styles.balanceCard}>
         <Text style={styles.balanceLabel}>Net disponible estimé</Text>
-        <Text style={styles.balanceValue}>{currencyFormatter.format(kpis.netDisponible)}</Text>
+        <Text style={styles.balanceValue}>{currencyFormatter.format(kpis.resteAVivre)}</Text>
         <Text style={styles.balanceHelper}>Calculé depuis les factures payées, dépenses et virements locaux.</Text>
       </View>
 
