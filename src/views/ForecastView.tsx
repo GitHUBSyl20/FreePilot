@@ -4,6 +4,8 @@ import { formatCurrency, formatMonthLabel } from '../format';
 
 type Props = {
   months: ForecastMonth[];
+  /** Total des factures émises, pas encore payées, sans échéance saisie : exclu de `months`. */
+  facturesSansEcheance: number;
 };
 
 /**
@@ -29,7 +31,7 @@ const revenueSources = (month: ForecastMonth): string => {
  * reconduite au-delà — un repère, pas une prédiction exacte, d'où le rappel
  * d'hypothèses et le badge « estimé ».
  */
-export function ForecastView({ months }: Props) {
+export function ForecastView({ facturesSansEcheance, months }: Props) {
   if (months.length === 0) {
     return (
       <section className="details-stack single">
@@ -57,6 +59,16 @@ export function ForecastView({ months }: Props) {
           <dt>Trésorerie cumulée</dt>
           <dd>= solde réel (pro + perso) − Σ déficits des mois négatifs (un mois positif est vécu, pas épargné)</dd>
         </dl>
+
+        {facturesSansEcheance > 0 ? (
+          <aside className="pwa-banner" role="status">
+            <p>
+              {formatCurrency(facturesSansEcheance)} de factures en attente n’ont pas d’échéance renseignée : elles ne
+              sont comptées sur aucun mois ci-dessous. Ajoute une échéance dans l’onglet Factures pour les inclure.
+            </p>
+          </aside>
+        ) : null}
+
         <div className="forecast-timeline" role="list" aria-label="Prévisionnel mois par mois">
           {months.map((month) => {
             const sources = revenueSources(month);

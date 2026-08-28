@@ -29,6 +29,7 @@ import {
   loadOrSeedFinanceData,
   logInteraction,
   markInvoicePaid,
+  pendingInvoiceRevenueWithoutDueDate,
   postDueRecurringCharges,
   projectDashboard,
   removeImportBatch,
@@ -148,6 +149,10 @@ export const App = () => {
   const forecastMonths = useMemo(
     () => (data ? buildForecastMonths(data, currentMonth, 6) : []),
     [currentMonth, data],
+  );
+  const facturesSansEcheance = useMemo(
+    () => (data ? pendingInvoiceRevenueWithoutDueDate(data) : 0),
+    [data],
   );
   const followUps = useMemo(() => (data ? buildProspectFollowUps(data, currentDay) : []), [currentDay, data]);
   const crmSummary = useMemo(() => (data ? summarizeCrm(data, currentDay) : null), [currentDay, data]);
@@ -382,7 +387,9 @@ export const App = () => {
             />
           ) : null}
 
-          {financePage === 'forecast' ? <ForecastView months={forecastMonths} /> : null}
+          {financePage === 'forecast' ? (
+            <ForecastView facturesSansEcheance={facturesSansEcheance} months={forecastMonths} />
+          ) : null}
         </>
       ) : null}
 

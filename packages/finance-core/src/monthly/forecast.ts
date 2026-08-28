@@ -27,15 +27,36 @@ const latestKnownFullMonthlyARE = (data: FinanceData, atOrBefore: string): numbe
 };
 
 /**
- * Factures déjà émises, pas encore payées, attendues sur `month` : à leur
- * échéance saisie, ou repliées sur `fromMonth` si aucune échéance n'est
- * renseignée — plutôt que de les faire disparaître du prévisionnel.
+ * Factures déjà émises, pas encore payées, attendues sur `month` à leur
+ * échéance saisie.
+ *
+ * Une facture sans échéance n'est comptée sur aucun mois — surtout pas repliée
+ * sur le mois courant : « aujourd'hui » change à chaque ouverture de l'écran,
+ * ce qui ferait rejouer artificiellement le même CA sur un mois différent à
+ * chaque fois, avec la déduction ARE et l'Urssaf/impôt qui vont avec. Voir
+ * `pendingInvoiceRevenueWithoutDueDate` pour leur total, à part.
  */
-const pendingInvoiceRevenueForMonth = (data: FinanceData, month: string, fromMonth: string): number =>
+const pendingInvoiceRevenueForMonth = (data: FinanceData, month: string): number =>
   roundCurrency(
     data.invoices
       .filter((invoice) => invoice.status === 'sent' || invoice.status === 'overdue')
-      .filter((invoice) => (invoice.dueDate ? invoice.dueDate.slice(0, 7) : fromMonth) === month)
+      .filter((invoice) => invoice.dueDate?.slice(0, 7) === month)
+      .reduce((sum, invoice) => sum + safeNumber(invoice.totalTTC), 0),
+  );
+
+/**
+ * Total des factures émises, pas encore payées, sans échéance saisie.
+ *
+ * Volontairement tenu à l'écart du prévisionnel mois par mois (voir
+ * `pendingInvoiceRevenueForMonth`) : sans date, il n'y a rien de fiable à
+ * projeter sur un mois précis. Le bon geste est de renseigner l'échéance sur
+ * ces factures, dans l'onglet Factures.
+ */
+export const pendingInvoiceRevenueWithoutDueDate = (data: FinanceData): number =>
+  roundCurrency(
+    data.invoices
+      .filter((invoice) => invoice.status === 'sent' || invoice.status === 'overdue')
+      .filter((invoice) => !invoice.dueDate)
       .reduce((sum, invoice) => sum + safeNumber(invoice.totalTTC), 0),
   );
 
@@ -82,7 +103,7 @@ export const buildForecastMonths = (data: FinanceData, fromMonth: string, months
     return {
       month,
       collectedRevenue: roundCurrency(
-        collectedRevenueForMonth(data, month) + pendingInvoiceRevenueForMonth(data, month, fromMonth),
+        collectedRevenueForMonth(data, month) + pendingInvoiceRevenueForMonth(data, month),
       ),
       fullMonthlyARE: safeNumber(areEntry?.fullMonthlyARE),
       actualARE: areEntry?.actualARE ?? null,
@@ -95,7 +116,7 @@ export const buildForecastMonths = (data: FinanceData, fromMonth: string, months
     .map((month) => ({
       month,
       collectedRevenue: roundCurrency(
-        pendingInvoiceRevenueForMonth(data, month, fromMonth) +
+        pendingInvoiceRevenueForMonth(data, month) +
           weightedPipelineForMonth(data, month) +
           // Comparaison lexicographique de 'YYYY-MM-DD' : le 31 n'a pas besoin
           // d'exister réellement, la chaîne suffit à borner le mois par le haut.
@@ -145,7 +166,7 @@ export const buildForecastMonths = (data: FinanceData, fromMonth: string, months
       // Composent déjà collectedRevenue, y compris pour le mois courant (voir
       // la note de `buildForecastMonths`) ; exposées à part pour rester
       // traçable sur ce qui vient de factures déjà émises.
-      facturesEnAttente: pendingInvoiceRevenueForMonth(data, month, fromMonth),
+      facturesEnAttente: pendingInvoiceRevenueForMonth(data, month),
       pipelinePondere: weightedPipelineForMonth(data, month),
       mrrPrevisionnel: mrrForecast(data, `${month}-31`),
       effectiveARE: cashflow?.effectiveARE ?? 0,

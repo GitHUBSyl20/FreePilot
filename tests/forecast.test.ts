@@ -1,5 +1,5 @@
 import type { FinanceData } from '@freepilot/finance-core';
-import { buildForecastMonths, defaultSettings } from '@freepilot/finance-core';
+import { buildForecastMonths, defaultSettings, pendingInvoiceRevenueWithoutDueDate } from '@freepilot/finance-core';
 import { describe, expect, it } from 'vitest';
 
 /** Même trame que financeProjection.test.ts : deux mois facturés, une ARE versée, deux charges fixes. */
@@ -130,7 +130,7 @@ describe('prévisionnel : factures émises pas encore payées', () => {
         paymentDate: null,
         paymentAccountId: null,
       },
-      // Aucune échéance saisie : repliée sur le mois courant (juin).
+      // Aucune échéance saisie : exclue du prévisionnel mois par mois.
       {
         id: 'inv-overdue',
         clientName: 'Client D',
@@ -156,18 +156,39 @@ describe('prévisionnel : factures émises pas encore payées', () => {
     expect(august.collectedRevenue).toBe(300);
   });
 
-  it('replie une facture sans échéance sur le mois courant et la compte dans son CA — principe même du prévisionnel', () => {
-    const withPending = buildForecastMonths(withPendingInvoices(), '2026-06', 6);
-    const withoutPending = buildForecastMonths(scenario(), '2026-06', 6);
-    const [juneWithPending] = withPending;
-    const [juneWithoutPending] = withoutPending;
+  it('exclut une facture sans échéance du prévisionnel mois par mois, plutôt que de deviner un mois', () => {
+    const withUndated = (): FinanceData => {
+      const data = scenario();
+      data.invoices.push({
+        id: 'inv-overdue',
+        clientName: 'Client D',
+        status: 'overdue',
+        totalTTC: 150,
+        issueDate: '2026-05-05',
+        dueDate: null,
+        paymentDate: null,
+        paymentAccountId: null,
+      });
+      return data;
+    };
 
-    expect(juneWithPending.facturesEnAttente).toBe(150);
-    // Contrairement au tableau de bord (strictement encaissé), la simulation
-    // compte une facture émise dès qu'elle existe : le CA et le reste à
-    // vivre de juin montent tous les deux de 150 €, sans aucun autre effet
-    // (pas de la première Urssaf/impôt du mois, reportée sur juillet).
-    expect(juneWithPending.collectedRevenue).toBe(juneWithoutPending.collectedRevenue + 150);
-    expect(juneWithPending.resteAVivre).toBeCloseTo(juneWithoutPending.resteAVivre + 150, 2);
+    const withPending = buildForecastMonths(withUndated(), '2026-06', 6);
+    const withoutPending = buildForecastMonths(scenario(), '2026-06', 6);
+
+    // Aucun mois de l'horizon ne voit passer les 150 € sans échéance : ni
+    // dans facturesEnAttente, ni dans le CA, ni dans le reste à vivre — sinon
+    // « aujourd'hui » repousserait le même montant sur un mois différent à
+    // chaque ouverture de l'écran (voir pendingInvoiceRevenueWithoutDueDate
+    // pour leur total, tenu à part).
+    withPending.forEach((month, index) => {
+      expect(month.facturesEnAttente).toBe(withoutPending[index].facturesEnAttente);
+      expect(month.collectedRevenue).toBe(withoutPending[index].collectedRevenue);
+      expect(month.resteAVivre).toBe(withoutPending[index].resteAVivre);
+    });
+  });
+
+  it('expose à part le total des factures sans échéance, sans jamais les affecter à un mois', () => {
+    expect(pendingInvoiceRevenueWithoutDueDate(withPendingInvoices())).toBe(150);
+    expect(pendingInvoiceRevenueWithoutDueDate(scenario())).toBe(0);
   });
 });
