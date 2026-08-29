@@ -28,8 +28,8 @@ const revenueSources = (month: ForecastMonth): string => {
  * découle. Une facture émise compte comme CA dès le mois courant (principe du
  * prévisionnel, différent du tableau de bord) ; les mois futurs ajoutent en
  * plus le pipeline pondéré et le MRR. Charges fixes constantes et ARE
- * reconduite au-delà — un repère, pas une prédiction exacte, d'où le rappel
- * d'hypothèses et le badge « estimé ».
+ * reconduite au-delà — un repère, pas une prédiction exacte, d'où le badge
+ * « estimé » sur les mois projetés.
  */
 export function ForecastView({ facturesSansEcheance, months }: Props) {
   if (months.length === 0) {
@@ -48,18 +48,6 @@ export function ForecastView({ facturesSansEcheance, months }: Props) {
   return (
     <section className="details-stack single">
       <Panel title="Prévisionnel">
-        <p className="muted-note">Hypothèses des mois estimés :</p>
-        <dl className="forecast-formulas">
-          <dt>CA</dt>
-          <dd>= factures en attente (échéance, dès le mois courant) + pipeline pondéré CRM + MRR déjà gagné (mois futurs)</dd>
-          <dt>ARE</dt>
-          <dd>= dernière ARE pleine connue, reconduite</dd>
-          <dt>Charges fixes</dt>
-          <dd>= identiques à aujourd’hui</dd>
-          <dt>Trésorerie cumulée</dt>
-          <dd>= solde réel (pro + perso) − Σ déficits des mois négatifs (un mois positif est vécu, pas épargné)</dd>
-        </dl>
-
         {facturesSansEcheance > 0 ? (
           <aside className="pwa-banner" role="status">
             <p>

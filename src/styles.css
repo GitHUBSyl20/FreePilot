@@ -704,36 +704,6 @@ textarea {
 }
 
 /*
- * Hypothèses du prévisionnel, en formules alignées plutôt qu'en phrase à
- * décortiquer. `dt`/`dd` en enfants directs de la grille (plutôt que groupés
- * ligne par ligne) pour que toutes les colonnes — et donc tous les « = » —
- * s'alignent d'une ligne à l'autre.
- */
-.forecast-formulas {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4px 10px;
-  margin: 6px 0 4px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: rgb(20 33 61 / 4%);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.72rem;
-  line-height: 1.4;
-}
-
-.forecast-formulas dt {
-  color: #14213d;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.forecast-formulas dd {
-  margin: 0;
-  color: #475467;
-}
-
-/*
  * Timeline horizontale du prévisionnel : une carte par mois, largeur fixe,
  * défilement tactile/molette au lieu d'un empilement vertical — plus lisible
  * pour comparer des mois entre eux d'un coup d'œil.
