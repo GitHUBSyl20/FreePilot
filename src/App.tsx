@@ -350,11 +350,14 @@ export const App = () => {
 
           {financePage === 'transactions' ? (
             <TransactionsView
+              accounts={data.accounts}
               onAddExpense={(input) =>
-                saveData(addExpense(data, { ...input, date: today(), accountId: professionalAccountId }))
+                saveData(addExpense(data, { ...input, date: today(), accountId: input.accountId || professionalAccountId }))
               }
               onAddOtherIncome={(input) =>
-                saveData(addOtherIncome(data, { ...input, date: today(), accountId: professionalAccountId }))
+                saveData(
+                  addOtherIncome(data, { ...input, date: today(), accountId: input.accountId || professionalAccountId }),
+                )
               }
               onDelete={handleDeleteTransaction}
               onUpdate={(transactionId, input) => saveData(updateTransaction(data, transactionId, input))}

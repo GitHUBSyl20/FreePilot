@@ -3,6 +3,7 @@ import {
   EditableInvoice,
   FinanceData,
   Transaction,
+  TransactionKind,
   addExpense,
   addInvoice,
   createTransfer,
@@ -42,6 +43,40 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 const parseAmount = (value: string): number => Number(value.replace(',', '.')) || 0;
 
+const kindLabels: Record<TransactionKind, string> = {
+  income: 'Encaissement de facture',
+  otherIncome: 'Encaissement hors CA',
+  expense: 'Dépense',
+  transfer: 'Virement interne',
+  provision: 'Provision',
+};
+
+/**
+ * Le compte de rattachement se change ici pour ce qui a été saisi ici. Un
+ * encaissement de facture appartient à la facture, et un prélèvement de charge
+ * fixe serait réécrit au prochain report : leur compte se choisit ailleurs.
+ */
+const canPickAccount = (transaction: Transaction): boolean =>
+  (transaction.kind === 'expense' || transaction.kind === 'otherIncome') &&
+  !transaction.invoiceId &&
+  !transaction.recurringChargeId;
+
+/**
+ * Sur quel compte l'opération est retombée. Affiché sur chaque ligne parce que
+ * c'est invisible autrement : une dépense perso partie sur le compte pro ne se
+ * repère qu'en comparant les soldes.
+ */
+const accountLabel = (accounts: AccountBalance[], transaction: Transaction): string | null => {
+  const nameOf = (id: string | null): string | null =>
+    accounts.find((account) => account.id === id)?.name ?? null;
+
+  if (transaction.kind === 'transfer' && transaction.fromAccountId && transaction.toAccountId) {
+    return `${nameOf(transaction.fromAccountId) ?? '?'} → ${nameOf(transaction.toAccountId) ?? '?'}`;
+  }
+
+  return nameOf(transaction.fromAccountId ?? transaction.toAccountId);
+};
+
 export default function App() {
   const [data, setData] = useState<FinanceData | null>(null);
   const [screen, setScreen] = useState<Screen>('dashboard');
@@ -49,6 +84,7 @@ export default function App() {
   const [invoiceAmount, setInvoiceAmount] = useState('');
   const [expenseLabel, setExpenseLabel] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
+  const [expenseAccountId, setExpenseAccountId] = useState('');
   const [transferAmount, setTransferAmount] = useState('');
   const [transferFrom, setTransferFrom] = useState('');
   const [transferTo, setTransferTo] = useState('');
@@ -98,15 +134,29 @@ export default function App() {
 
   const handleAddExpense = () => {
     const amount = parseAmount(expenseAmount);
-    if (!amount || !professionalAccountId) return;
+    const accountId = expenseAccountId || professionalAccountId;
+    if (!amount || !accountId) return;
+
     if (editingTransactionId) {
-      saveData(updateTransaction(data, editingTransactionId, { label: expenseLabel, amount }));
+      const edited = data.transactions.find((item) => item.id === editingTransactionId) ?? null;
+      // `fromAccountId` pour une sortie, `toAccountId` pour une entrée : c'est
+      // le sens du mouvement qui décide du champ, pas le compte choisi.
+      const movedAccount =
+        edited && canPickAccount(edited)
+          ? edited.kind === 'expense'
+            ? { fromAccountId: accountId }
+            : { toAccountId: accountId }
+          : {};
+
+      saveData(updateTransaction(data, editingTransactionId, { label: expenseLabel, amount, ...movedAccount }));
       setEditingTransactionId(null);
     } else {
-      saveData(addExpense(data, { label: expenseLabel, amount, date: today(), accountId: professionalAccountId }));
+      saveData(addExpense(data, { label: expenseLabel, amount, date: today(), accountId }));
     }
+
     setExpenseLabel('');
     setExpenseAmount('');
+    setExpenseAccountId('');
   };
 
   const handleTransfer = () => {
@@ -169,6 +219,7 @@ export default function App() {
     setEditingTransactionId(transaction.id);
     setExpenseLabel(transaction.label);
     setExpenseAmount(String(transaction.amount));
+    setExpenseAccountId(transaction.fromAccountId ?? transaction.toAccountId ?? '');
     setScreen('transactions');
   };
 
@@ -176,6 +227,7 @@ export default function App() {
     setEditingTransactionId(null);
     setExpenseLabel('');
     setExpenseAmount('');
+    setExpenseAccountId('');
   };
 
   const handleDeleteTransaction = (transaction: Transaction) => {
@@ -275,9 +327,12 @@ export default function App() {
 
         {screen === 'transactions' ? (
           <TransactionsScreen
+            accountId={expenseAccountId || professionalAccountId || ''}
+            accounts={dashboard.accountBalances}
             amount={expenseAmount}
             editingTransactionId={editingTransactionId}
             label={expenseLabel}
+            onAccountChange={setExpenseAccountId}
             onAddExpense={handleAddExpense}
             onAmountChange={setExpenseAmount}
             onCancelEdit={handleCancelTransactionEdit}
@@ -505,9 +560,12 @@ function InvoicesScreen({
 }
 
 function TransactionsScreen({
+  accountId,
+  accounts,
   amount,
   editingTransactionId,
   label,
+  onAccountChange,
   onAddExpense,
   onAmountChange,
   onCancelEdit,
@@ -516,9 +574,12 @@ function TransactionsScreen({
   onLabelChange,
   transactions,
 }: {
+  accountId: string;
+  accounts: AccountBalance[];
   amount: string;
   editingTransactionId: string | null;
   label: string;
+  onAccountChange: (value: string) => void;
   onAddExpense: () => void;
   onAmountChange: (value: string) => void;
   onCancelEdit: () => void;
@@ -527,9 +588,22 @@ function TransactionsScreen({
   onLabelChange: (value: string) => void;
   transactions: Transaction[];
 }) {
+  const editingTransaction = editingTransactionId
+    ? transactions.find((item) => item.id === editingTransactionId) ?? null
+    : null;
+  const showAccountPicker = editingTransaction ? canPickAccount(editingTransaction) : accounts.length > 0;
+  const accountFieldLabel =
+    editingTransaction && editingTransaction.kind === 'otherIncome' ? 'Compte crédité' : 'Compte débité';
+
   return (
     <>
-      <Section title={editingTransactionId ? 'Modifier l’opération' : 'Nouvelle dépense pro'}>
+      <Section title={editingTransactionId ? 'Modifier l’opération' : 'Nouvelle dépense'}>
+        {showAccountPicker ? (
+          <>
+            <Text style={styles.fieldLabel}>{accountFieldLabel}</Text>
+            <AccountSelector accounts={accounts} onSelect={onAccountChange} selectedId={accountId} />
+          </>
+        ) : null}
         <TextInput onChangeText={onLabelChange} placeholder="Libellé" style={styles.input} value={label} />
         <TextInput
           inputMode="decimal"
@@ -554,7 +628,13 @@ function TransactionsScreen({
         {transactions.map((transaction) => (
           <View key={transaction.id} style={styles.invoiceRow}>
             <Row
-              helper={`${transaction.kind} · ${transaction.date}`}
+              helper={[
+                transaction.recurringChargeId ? 'Charge fixe' : kindLabels[transaction.kind],
+                transaction.date,
+                accountLabel(accounts, transaction),
+              ]
+                .filter(Boolean)
+                .join(' · ')}
               label={transaction.label}
               value={currencyFormatter.format(transaction.amount)}
             />
