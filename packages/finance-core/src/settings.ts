@@ -43,6 +43,7 @@ export const settingRules: Record<NumericSettingKey, SettingRule> = {
   versementLiberatoireRateBNC: { kind: 'rate', min: 0, max: 100 },
   monthlyRevenueSafetyThreshold: { kind: 'currency', min: 0, max: 1000000 },
   monthlyRevenueTakeoffThreshold: { kind: 'currency', min: 0, max: 1000000 },
+  monthlyLivingBudget: { kind: 'currency', min: 0, max: 100000 },
   hotProspectFollowUpDays: { kind: 'days', min: 1, max: 365, integer: true },
   warmProspectFollowUpDays: { kind: 'days', min: 1, max: 365, integer: true },
   coldProspectFollowUpDays: { kind: 'days', min: 1, max: 365, integer: true },

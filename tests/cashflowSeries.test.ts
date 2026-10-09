@@ -23,6 +23,7 @@ const settings: AppSettings = {
   versementLiberatoireRateBNC: 2.2,
   monthlyRevenueSafetyThreshold: 1000,
   monthlyRevenueTakeoffThreshold: 1500,
+  monthlyLivingBudget: 0,
   hotProspectFollowUpDays: 7,
   warmProspectFollowUpDays: 21,
   coldProspectFollowUpDays: 60,
