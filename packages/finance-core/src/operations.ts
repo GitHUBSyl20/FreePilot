@@ -219,13 +219,21 @@ export const updateInvoice = (
 };
 
 /**
- * Factures de la plus récente à la plus ancienne, par date de facturation.
+ * Factures de la plus récente à la plus ancienne, sur leur dernier
+ * événement : la date d'encaissement si elle est payée, sinon la date de
+ * facturation. Une facture émise en septembre et payée en octobre passe ainsi
+ * devant une facture payée en septembre.
+ *
  * À date égale, l'ordre stocké est conservé : `addInvoice` place la nouvelle
  * facture en tête, la dernière saisie reste donc devant. Renvoie une copie,
  * sans toucher à l'ordre stocké.
  */
-export const sortInvoicesByDateDesc = <T extends { issueDate: string }>(invoices: T[]): T[] =>
-  [...invoices].sort((left, right) => right.issueDate.localeCompare(left.issueDate));
+export const sortInvoicesByDateDesc = <T extends { issueDate: string; paymentDate: string | null }>(
+  invoices: T[],
+): T[] => {
+  const latestDate = (invoice: T): string => invoice.paymentDate ?? invoice.issueDate;
+  return [...invoices].sort((left, right) => latestDate(right).localeCompare(latestDate(left)));
+};
 
 export const deleteInvoice = (data: FinanceData, invoiceId: string): FinanceData => ({
   ...data,
