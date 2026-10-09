@@ -36,15 +36,18 @@ const writeCollapsedPanel = (title: string, collapsed: boolean): void => {
 export function Panel({
   children,
   collapsible = false,
+  defaultCollapsed = false,
   title,
 }: {
   children: ReactNode;
   collapsible?: boolean;
+  /** État initial tant que l'utilisateur n'a jamais ouvert ni fermé ce panneau. */
+  defaultCollapsed?: boolean;
   title: string;
 }) {
   // Le titre sert de clé : il est stable et unique à l'écran, là où un index
   // de rendu changerait au moindre réagencement.
-  const [collapsed, setCollapsed] = useState(() => collapsible && readCollapsedPanels()[title] === true);
+  const [collapsed, setCollapsed] = useState(() => collapsible && (readCollapsedPanels()[title] ?? defaultCollapsed));
 
   if (!collapsible) {
     return (

@@ -1,142 +1,111 @@
-import type { AppSettings, DashboardProjection } from '@freepilot/finance-core';
+import type { AppSettings, DashboardProjection, ForecastMonth } from '@freepilot/finance-core';
 import { addMonths } from '@freepilot/finance-core';
-import { EmptyState, InfoRow, Panel } from '../components/Panel';
-import { formatCurrency, formatDate, formatDays, formatMonthComplement, formatMonthLabel } from '../format';
+import { InfoRow, Panel } from '../components/Panel';
+import { formatCurrency, formatMonthComplement, formatMonthLabel } from '../format';
 
 type Props = {
   projection: DashboardProjection;
   settings: AppSettings;
+  /** Mois courant puis mois estimés, déjà calculés par `buildForecastMonths`. */
+  forecastMonths: ForecastMonth[];
   onAddInvoice: () => void;
   onAddExpense: () => void;
 };
 
-export function DashboardView({ projection, settings, onAddExpense, onAddInvoice }: Props) {
+/**
+ * L'accueil répond à deux questions, dans cet ordre : combien je peux
+ * dépenser ce mois-ci, et où en est mon CA face à l'objectif. Tout le reste
+ * vit dans les onglets ou dans le détail repliable.
+ */
+export function DashboardView({ forecastMonths, projection, settings, onAddExpense, onAddInvoice }: Props) {
   const { kpis, outlook } = projection;
   const missingARE = outlook.cashflow.theoreticalARE.warnings.length > 0;
-  const nextMonth = addMonths(projection.month, 1);
   const previousMonth = addMonths(projection.month, -1);
-
-  const indicators = [
-    {
-      label: 'Trésorerie disponible',
-      value: formatCurrency(kpis.tresorerieDisponible),
-      helper: 'Comptes pro + perso, hors provision et épargne — bouge avec le solde réel',
-    },
-    { label: 'CA encaissé', value: formatCurrency(kpis.caEncaisse), helper: 'Factures payées ce mois-ci' },
-    { label: 'Factures à encaisser', value: formatCurrency(kpis.facturesImpayees), helper: 'Émises, pas encore payées' },
-    { label: 'ARE du mois', value: formatCurrency(kpis.areDuMois), helper: 'Versée si connue, sinon estimée' },
-    {
-      label: 'ARE estimée M+1',
-      value: kpis.areEstimeeM1 === null ? 'À renseigner' : formatCurrency(kpis.areEstimeeM1),
-      helper:
-        kpis.areEstimeeM1 === null
-          ? `ARE pleine ${formatMonthComplement(nextMonth)} non saisie, onglet ARE`
-          : 'Après déduction du CA de ce mois',
-    },
-    {
-      label: 'Trésorerie du mois',
-      value: formatCurrency(kpis.netFinal),
-      helper: `CA − Urssaf ${formatMonthComplement(previousMonth)} + ARE`,
-    },
-    { label: 'Charges fixes', value: formatCurrency(kpis.chargesFixes), helper: 'Pro et perso confondues' },
-    { label: 'Seuil coupure ARE', value: formatCurrency(kpis.seuilCoupureARE), helper: 'CA encaissé avant ARE à 0 €' },
-    { label: 'Jours ARE restants', value: formatDays(kpis.joursAreRestants), helper: 'Capital de droits non consommés' },
-  ];
+  const upcoming = forecastMonths.filter((month) => month.isEstimated).slice(0, 3);
 
   return (
     <>
       <section className={kpis.resteAVivre < 0 ? 'balance-card negative' : 'balance-card'}>
         <span>Reste à vivre</span>
         <strong>{formatCurrency(kpis.resteAVivre)}</strong>
-        <p>Trésorerie du mois, une fois réglés l’Urssaf et l’impôt dus sur le CA du mois précédent, et toutes les charges payées.</p>
+        <p>Ce que tu peux dépenser ce mois-ci, Urssaf, impôt et charges déjà déduits.</p>
       </section>
 
       {missingARE ? (
         <aside className="pwa-banner" role="status">
-          <p>Aucune ARE renseignée pour ce mois : les estimations sont incomplètes.</p>
+          <p>ARE du mois non renseignée : le reste à vivre est incomplet (onglet ARE).</p>
         </aside>
       ) : null}
 
-      <nav className="quick-actions" aria-label="Actions rapides">
-        <button onClick={onAddInvoice} type="button">Ajouter facture</button>
-        <button onClick={onAddExpense} type="button">Saisir dépense</button>
-      </nav>
-
-      <section className="kpi-list" aria-label="Indicateurs financiers">
-        {indicators.map((indicator) => (
-          <article className="kpi-row" key={indicator.label}>
-            <div>
-              <span>{indicator.label}</span>
-              <p>{indicator.helper}</p>
-            </div>
-            <strong>{indicator.value}</strong>
-          </article>
-        ))}
-      </section>
-
       <section className="details-stack">
-        <Panel title="Paliers de CA">
+        <Panel title="CA encaissé ce mois">
           <ThresholdGauge
             collectedRevenue={kpis.caEncaisse}
             safety={settings.monthlyRevenueSafetyThreshold}
             takeoff={settings.monthlyRevenueTakeoffThreshold}
           />
         </Panel>
+      </section>
 
-        <Panel collapsible title="Détail du mois">
+      <section className="kpi-list" aria-label="Indicateurs">
+        <article className="kpi-row">
+          <div>
+            <span>Factures à encaisser</span>
+            <p>Émises, pas encore payées</p>
+          </div>
+          <strong>{formatCurrency(kpis.facturesImpayees)}</strong>
+        </article>
+        <article className="kpi-row">
+          <div>
+            <span>Trésorerie disponible</span>
+            <p>Comptes pro + perso, hors épargne</p>
+          </div>
+          <strong>{formatCurrency(kpis.tresorerieDisponible)}</strong>
+        </article>
+      </section>
+
+      <nav className="quick-actions" aria-label="Actions rapides">
+        <button onClick={onAddInvoice} type="button">Ajouter facture</button>
+        <button onClick={onAddExpense} type="button">Saisir dépense</button>
+      </nav>
+
+      <section className="details-stack">
+        <Panel collapsible title="Calcul du reste à vivre">
+          <InfoRow label="CA encaissé" value={formatCurrency(kpis.caEncaisse)} />
+          <InfoRow label="ARE du mois" helper="Versée si connue, sinon estimée" value={formatCurrency(kpis.areDuMois)} />
           <InfoRow
-            label="Urssaf prélevée"
+            label="− Urssaf"
             helper={`Due sur le CA ${formatMonthComplement(previousMonth)}`}
             value={formatCurrency(outlook.cashflow.carriedUrssaf)}
           />
           <InfoRow
-            label="Impôt prélevé"
-            helper={`Dû sur le CA ${formatMonthComplement(previousMonth)}, 11 % après abattement`}
+            label="− Impôt"
+            helper={`Dû sur le CA ${formatMonthComplement(previousMonth)}`}
             value={formatCurrency(outlook.cashflow.carriedIncomeTax)}
           />
-          <InfoRow
-            label="Urssaf à venir"
-            helper={`Générée par le CA de ce mois-ci, prélevée en ${formatMonthLabel(outlook.cashflow.urssafPaymentMonth).toLowerCase()}`}
-            value={formatCurrency(outlook.cashflow.urssafProvision.value)}
-          />
-          <InfoRow
-            label="Impôt à venir"
-            helper={`Généré par le CA de ce mois-ci, prélevé en ${formatMonthLabel(outlook.cashflow.urssafPaymentMonth).toLowerCase()}`}
-            value={formatCurrency(outlook.cashflow.incomeTaxProvision.value)}
-          />
-          <InfoRow label="Charges fixes pro" value={formatCurrency(outlook.recurringCharges.professional)} />
-          <InfoRow label="Charges fixes perso" value={formatCurrency(outlook.recurringCharges.personal)} />
-          <InfoRow label="Dépenses ponctuelles" value={formatCurrency(outlook.variableExpenses)} />
+          <InfoRow label="− Charges fixes" helper="Pro et perso" value={formatCurrency(outlook.recurringCharges.total)} />
+          <InfoRow label="− Dépenses ponctuelles" value={formatCurrency(outlook.variableExpenses)} />
           {outlook.otherIncome > 0 ? (
-            <InfoRow
-              label="Encaissements hors CA"
-              helper="Ni Urssaf, ni impôt, ni déduction d’ARE"
-              value={formatCurrency(outlook.otherIncome)}
-            />
+            <InfoRow label="+ Encaissements hors CA" value={formatCurrency(outlook.otherIncome)} />
           ) : null}
-          <InfoRow label="Jours ARE consommés" helper="Sur l’ARE réellement versée" value={formatDays(outlook.cashflow.areDaysConsumed)} />
+          <p className="muted-note">
+            À mettre de côté pour le mois prochain : {formatCurrency(outlook.cashflow.urssafProvision.value)} d’Urssaf et{' '}
+            {formatCurrency(outlook.cashflow.incomeTaxProvision.value)} d’impôt sur le CA de ce mois.
+          </p>
         </Panel>
 
-        <Panel collapsible title="Comptes">
-          {projection.accountBalances.map((account) => (
-            <InfoRow helper={account.kind} key={account.id} label={account.name} value={formatCurrency(account.balance)} />
-          ))}
-        </Panel>
-
-        <Panel collapsible title="Dernières opérations">
-          {projection.recentTransactions.length === 0 ? (
-            <EmptyState>Aucune opération enregistrée.</EmptyState>
-          ) : (
-            projection.recentTransactions.map((transaction) => (
+        {upcoming.length > 0 ? (
+          <Panel title="Mois à venir">
+            {upcoming.map((month) => (
               <InfoRow
-                helper={formatDate(transaction.date)}
-                key={transaction.id}
-                label={transaction.label}
-                value={formatCurrency(transaction.amount)}
+                helper="Reste à vivre estimé"
+                key={month.month}
+                label={formatMonthLabel(month.month)}
+                value={formatCurrency(month.resteAVivre)}
               />
-            ))
-          )}
-        </Panel>
+            ))}
+          </Panel>
+        ) : null}
       </section>
     </>
   );
@@ -157,9 +126,13 @@ function ThresholdGauge({
   const percent = (value: number) => `${Math.min(100, (value / scale) * 100)}%`;
 
   const reached = collectedRevenue >= takeoff ? 'décollage' : collectedRevenue >= safety ? 'sécurité' : 'sous le plancher';
+  const remaining = Math.max(0, takeoff - collectedRevenue);
 
   return (
     <>
+      <p className="gauge-headline">
+        <strong>{formatCurrency(collectedRevenue)}</strong> / {formatCurrency(takeoff)}
+      </p>
       <div className="gauge" role="img" aria-label={`CA encaissé ${collectedRevenue} €, palier ${reached}`}>
         <div className="gauge-fill" style={{ width: percent(collectedRevenue) }} />
         <span className="gauge-marker" style={{ left: percent(safety) }} />
@@ -167,7 +140,10 @@ function ThresholdGauge({
       </div>
       <InfoRow label="Palier sécurité" helper="Couvre les charges fixes" value={formatCurrency(safety)} />
       <InfoRow label="Palier décollage" helper="Autonomie sans ARE" value={formatCurrency(takeoff)} />
-      <p className="muted-note">Situation actuelle : {reached}.</p>
+      <p className="muted-note">
+        Situation : {reached}
+        {remaining > 0 ? ` — encore ${formatCurrency(remaining)} pour décoller.` : '.'}
+      </p>
     </>
   );
 }

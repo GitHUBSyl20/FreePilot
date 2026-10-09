@@ -103,7 +103,7 @@ export function RecurringChargesView({
 
   return (
     <section className="details-stack single">
-      <Panel title="Total mensuel">
+      <Panel title="Charges fixes">
         <InfoRow label="Charges pro" value={formatCurrency(totals.professional)} />
         <InfoRow label="Charges perso" value={formatCurrency(totals.personal)} />
         <InfoRow label="Total" value={formatCurrency(totals.total)} />
@@ -113,7 +113,7 @@ export function RecurringChargesView({
         </p>
       </Panel>
 
-      <Panel title={editingId ? 'Modifier la charge' : 'Nouvelle charge fixe'}>
+      <Panel collapsible defaultCollapsed={!editingId} key={editingId ? 'edit' : 'new'} title={editingId ? 'Modifier la charge' : 'Nouvelle charge fixe'}>
         <input aria-label="Libellé" onChange={(event) => setLabel(event.target.value)} placeholder="Libellé" value={label} />
         <div className="field-grid">
           <input

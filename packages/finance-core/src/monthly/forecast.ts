@@ -90,7 +90,25 @@ export const pendingInvoiceRevenueWithoutDueDate = (data: FinanceData): number =
  * passent par la même moulinette (`buildMonthlyCashflowSeries`) pour que la
  * déduction ARE continue de se transmettre correctement d'un mois à l'autre.
  */
-export const buildForecastMonths = (data: FinanceData, fromMonth: string, monthsAhead = 6): ForecastMonth[] => {
+export type ForecastOptions = {
+  /**
+   * Compte le pipeline pondéré et le MRR du CRM. À désactiver quand le CRM
+   * n'est pas affiché : des affaires invisibles ne doivent pas gonfler le
+   * prévisionnel.
+   */
+  includeCrm?: boolean;
+};
+
+export const buildForecastMonths = (
+  data: FinanceData,
+  fromMonth: string,
+  monthsAhead = 6,
+  { includeCrm = true }: ForecastOptions = {},
+): ForecastMonth[] => {
+  const pipelineFor = (month: string): number => (includeCrm ? weightedPipelineForMonth(data, month) : 0);
+  // Comparaison lexicographique de 'YYYY-MM-DD' : le 31 n'a pas besoin
+  // d'exister réellement, la chaîne suffit à borner le mois par le haut.
+  const mrrFor = (month: string): number => (includeCrm ? mrrForecast(data, `${month}-31`) : 0);
   const horizon = monthRange(fromMonth, Math.max(1, monthsAhead));
 
   const knownMonths = listCoveredMonths(data, fromMonth).filter((month) => compareMonths(month, fromMonth) <= 0);
@@ -117,10 +135,8 @@ export const buildForecastMonths = (data: FinanceData, fromMonth: string, months
       month,
       collectedRevenue: roundCurrency(
         pendingInvoiceRevenueForMonth(data, month) +
-          weightedPipelineForMonth(data, month) +
-          // Comparaison lexicographique de 'YYYY-MM-DD' : le 31 n'a pas besoin
-          // d'exister réellement, la chaîne suffit à borner le mois par le haut.
-          mrrForecast(data, `${month}-31`),
+          pipelineFor(month) +
+          mrrFor(month),
       ),
       fullMonthlyARE: fallbackFullMonthlyARE,
       actualARE: null,
@@ -167,8 +183,8 @@ export const buildForecastMonths = (data: FinanceData, fromMonth: string, months
       // la note de `buildForecastMonths`) ; exposées à part pour rester
       // traçable sur ce qui vient de factures déjà émises.
       facturesEnAttente: pendingInvoiceRevenueForMonth(data, month),
-      pipelinePondere: weightedPipelineForMonth(data, month),
-      mrrPrevisionnel: mrrForecast(data, `${month}-31`),
+      pipelinePondere: pipelineFor(month),
+      mrrPrevisionnel: mrrFor(month),
       effectiveARE: cashflow?.effectiveARE ?? 0,
       chargesFixes: recurringCharges.total,
       resteAVivre,

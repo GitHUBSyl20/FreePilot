@@ -894,3 +894,29 @@ code {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.settings-button {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  color: #344054;
+  background: rgb(20 33 61 / 8%);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.settings-button.active {
+  color: #ffffff;
+  background: #14213d;
+}
+
+.gauge-headline {
+  margin: 0 0 8px;
+  color: #344054;
+}
+
+.gauge-headline strong {
+  font-size: 1.4rem;
+  color: #14213d;
+}
