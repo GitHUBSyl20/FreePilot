@@ -192,3 +192,47 @@ describe('prévisionnel : factures émises pas encore payées', () => {
     expect(pendingInvoiceRevenueWithoutDueDate(scenario())).toBe(0);
   });
 });
+
+describe('prévisionnel : CRM masqué', () => {
+  const withOpenOpportunity = (): FinanceData => ({
+    ...scenario(),
+    opportunities: [
+      {
+        id: 'opp-1',
+        prospectId: 'p-1',
+        title: 'Projet automatisation',
+        pipeline: 'projet',
+        stageId: 'proposal',
+        amount: 2000,
+        recurring: false,
+        monthlyAmount: null,
+        probability: 50,
+        probabilityOverride: false,
+        expectedCloseDate: '2026-07-15',
+        originEvent: null,
+        referrerProspectId: null,
+        funding: null,
+        status: 'open',
+        lossReason: null,
+        statusDate: null,
+        createdAt: '2026-06-01',
+      },
+    ],
+  });
+
+  it('compte le pipeline pondéré par défaut', () => {
+    const july = buildForecastMonths(withOpenOpportunity(), '2026-06', 3)[1];
+
+    expect(july.pipelinePondere).toBe(1000);
+    expect(july.collectedRevenue).toBe(1000);
+  });
+
+  it('ignore pipeline et MRR quand includeCrm vaut false', () => {
+    const withoutCrm = buildForecastMonths(withOpenOpportunity(), '2026-06', 3, { includeCrm: false });
+    const baseline = buildForecastMonths(scenario(), '2026-06', 3);
+
+    expect(withoutCrm[1].pipelinePondere).toBe(0);
+    expect(withoutCrm[1].mrrPrevisionnel).toBe(0);
+    expect(withoutCrm.map((month) => month.resteAVivre)).toEqual(baseline.map((month) => month.resteAVivre));
+  });
+});

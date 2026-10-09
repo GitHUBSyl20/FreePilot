@@ -39,6 +39,8 @@ type Group = {
  * se déduit de ses deux composantes. Le laisser saisir ouvrirait la porte à un
  * détail qui ne correspond pas au taux réellement appliqué.
  */
+// Les délais de relance du CRM n'y figurent plus : le CRM est masqué, leurs
+// valeurs restent enregistrées telles quelles dans les réglages.
 const groups: Group[] = [
   {
     title: 'Allocation ARE',
@@ -91,14 +93,6 @@ const groups: Group[] = [
         label: 'Palier décollage (€)',
         helper: "CA mensuel visé pour ne plus dépendre de l'ARE.",
       },
-    ],
-  },
-  {
-    title: 'Délais de relance',
-    fields: [
-      { key: 'hotProspectFollowUpDays', label: 'Prospect chaud (jours)' },
-      { key: 'warmProspectFollowUpDays', label: 'Prospect tiède (jours)' },
-      { key: 'coldProspectFollowUpDays', label: 'Prospect froid (jours)' },
     ],
   },
 ];

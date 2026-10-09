@@ -33,7 +33,7 @@ const defaultAccountId = (accounts: Account[]): string =>
 /**
  * Le compte de rattachement se change ici pour ce qui a été saisi ici. Un
  * encaissement de facture appartient à la facture, et un prélèvement de charge
- * fixe serait réécrit au prochain report : leur compte se choisit dans l'onglet
+ * fixe serait réécrit au prochain report : leur compte se choisit dans la section
  * d'origine, pas dans l'historique.
  */
 const canPickAccount = (transaction: Transaction): boolean =>
@@ -164,17 +164,17 @@ export function TransactionsView({
         <p className="muted-note">
           {entryKind === 'otherIncome' && !editingId
             ? 'Remboursement d’impôts, aide, remboursement de frais : de l’argent qui entre sans être du chiffre d’affaires. Il ne déclenche ni Urssaf, ni impôt, ni déduction d’ARE, mais compte dans le reste à vivre. Un paiement de client se saisit dans Factures.'
-            : 'Les charges qui reviennent chaque mois se saisissent dans l’onglet Charges.'}
+            : 'Les charges qui reviennent chaque mois se saisissent dans « Charges fixes », plus bas.'}
         </p>
       </Panel>
 
-      <Panel collapsible title="Historique">
+      <Panel collapsible defaultCollapsed title="Historique">
         {/* Les règles valent pour toute la liste : les répéter sous chaque ligne
             allongeait l'écran d'une page entière dès qu'il y avait des charges. */}
         <p className="muted-note">
           Un encaissement de facture se modifie depuis la facture. Un prélèvement de charge fixe se corrige
           ici mais ne se supprime pas — il serait recréé ; pour l’arrêter, suspends la charge. Le compte prélevé
-          par une charge fixe se change dans l’onglet Charges.
+          par une charge fixe se change dans « Charges fixes », plus bas.
         </p>
         {transactions.length === 0 ? (
           <EmptyState>Aucune opération enregistrée.</EmptyState>
