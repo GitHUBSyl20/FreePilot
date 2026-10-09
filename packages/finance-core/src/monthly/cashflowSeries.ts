@@ -92,6 +92,78 @@ export const buildMonthlyCashflowSeries = (
   });
 };
 
+/** Mois de la série qui entament le capital relevé : ceux postérieurs au relevé. */
+const monthsAfterStatement = (series: MonthlyCashflow[], settings: AppSettings): MonthlyCashflow[] => {
+  const statementMonth = settings.remainingAREDaysAsOf?.slice(0, 7) ?? null;
+  return statementMonth === null ? series : series.filter((month) => compareMonths(month.month, statementMonth) > 0);
+};
+
 /** Jours d'ARE restants après consommation de la série. */
 export const projectRemainingAREDays = (series: MonthlyCashflow[], settings: AppSettings): number =>
-  series.reduce((remaining, month) => remaining - month.areDaysConsumed, safeNumber(settings.remainingAREDays));
+  monthsAfterStatement(series, settings).reduce(
+    (remaining, month) => remaining - month.areDaysConsumed,
+    safeNumber(settings.remainingAREDays),
+  );
+
+export type AREDaysMonth = {
+  month: string;
+  /** Jours décomptés sur l'ARE versée ce mois-ci. */
+  consumed: number;
+  /** Jours non consommés grâce au CA : ils repoussent la fin de droits. */
+  deferred: number;
+  /** Capital restant à la fin du mois. */
+  remaining: number;
+  /** ARE pleine non saisie : le mois ne peut pas être décompté sérieusement. */
+  missingARE: boolean;
+};
+
+export type AREDaysBalance = {
+  statementDays: number;
+  statementDate: string | null;
+  months: AREDaysMonth[];
+  remaining: number;
+  deferredTotal: number;
+  /** Dernier mois indemnisé si l'ARE est versée pleine à partir du mois suivant. */
+  estimatedLastMonth: string | null;
+};
+
+/**
+ * Évolution du capital de jours ARE depuis le relevé France Travail.
+ *
+ * Chaque mois consomme `ARE versée / montant journalier` jours ; ce qui n'est
+ * pas versé à cause du CA n'est pas perdu mais reporté, ce qui recule la fin
+ * de droits. La fin estimée suppose une ARE pleine chaque mois ensuite : c'est
+ * la date au plus tôt.
+ */
+export const buildAREDaysBalance = (
+  series: MonthlyCashflow[],
+  settings: AppSettings,
+  upToMonth: string,
+): AREDaysBalance => {
+  const statementDays = safeNumber(settings.remainingAREDays);
+  let remaining = statementDays;
+  let deferredTotal = 0;
+
+  const months = monthsAfterStatement(series, settings)
+    .filter((month) => compareMonths(month.month, upToMonth) <= 0)
+    .map((month) => {
+      const missingARE = month.theoreticalARE.warnings.length > 0 && month.actualARE === null;
+      const consumed = Math.min(remaining, month.areDaysConsumed);
+      const deferred = missingARE ? 0 : Math.max(0, month.areDaysPreserved);
+      remaining = Math.max(0, remaining - consumed);
+      deferredTotal += deferred;
+      return { month: month.month, consumed, deferred, remaining, missingARE };
+    });
+
+  const monthlyDays = safeNumber(settings.theoreticalMonthlyDays);
+  const monthsLeft = monthlyDays > 0 ? Math.ceil(remaining / monthlyDays) : 0;
+
+  return {
+    statementDays,
+    statementDate: settings.remainingAREDaysAsOf,
+    months,
+    remaining,
+    deferredTotal,
+    estimatedLastMonth: remaining > 0 && monthsLeft > 0 ? addMonths(upToMonth, monthsLeft) : null,
+  };
+};

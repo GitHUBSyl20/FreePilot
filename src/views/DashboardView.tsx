@@ -21,6 +21,7 @@ export function DashboardView({ forecastMonths, projection, settings, onAddExpen
   const { kpis, outlook } = projection;
   const missingARE = outlook.cashflow.theoreticalARE.warnings.length > 0;
   const previousMonth = addMonths(projection.month, -1);
+  const nextMonth = addMonths(projection.month, 1);
   const upcoming = forecastMonths.filter((month) => month.isEstimated).slice(0, 3);
 
   return (
@@ -28,7 +29,7 @@ export function DashboardView({ forecastMonths, projection, settings, onAddExpen
       <section className={kpis.resteAVivre < 0 ? 'balance-card negative' : 'balance-card'}>
         <span>Reste à vivre</span>
         <strong>{formatCurrency(kpis.resteAVivre)}</strong>
-        <p>Ce que tu peux dépenser ce mois-ci, Urssaf, impôt et charges déjà déduits.</p>
+        <p>Ce que tu peux dépenser ce mois-ci, une fois mises de côté l’Urssaf et l’impôt de ton CA et payées tes charges.</p>
       </section>
 
       {missingARE ? (
@@ -74,14 +75,14 @@ export function DashboardView({ forecastMonths, projection, settings, onAddExpen
           <InfoRow label="CA encaissé" value={formatCurrency(kpis.caEncaisse)} />
           <InfoRow label="ARE du mois" helper="Versée si connue, sinon estimée" value={formatCurrency(kpis.areDuMois)} />
           <InfoRow
-            label="− Urssaf"
-            helper={`Due sur le CA ${formatMonthComplement(previousMonth)}`}
-            value={formatCurrency(outlook.cashflow.carriedUrssaf)}
+            label="− Urssaf à provisionner"
+            helper={`Sur le CA de ce mois, prélevée en ${formatMonthLabel(nextMonth).toLowerCase()}`}
+            value={formatCurrency(outlook.cashflow.urssafProvision.value)}
           />
           <InfoRow
-            label="− Impôt"
-            helper={`Dû sur le CA ${formatMonthComplement(previousMonth)}`}
-            value={formatCurrency(outlook.cashflow.carriedIncomeTax)}
+            label="− Impôt à provisionner"
+            helper="Sur le CA de ce mois"
+            value={formatCurrency(outlook.cashflow.incomeTaxProvision.value)}
           />
           <InfoRow label="− Charges fixes" helper="Pro et perso" value={formatCurrency(outlook.recurringCharges.total)} />
           <InfoRow label="− Dépenses ponctuelles" value={formatCurrency(outlook.variableExpenses)} />
@@ -89,8 +90,7 @@ export function DashboardView({ forecastMonths, projection, settings, onAddExpen
             <InfoRow label="+ Encaissements hors CA" value={formatCurrency(outlook.otherIncome)} />
           ) : null}
           <p className="muted-note">
-            À mettre de côté pour le mois prochain : {formatCurrency(outlook.cashflow.urssafProvision.value)} d’Urssaf et{' '}
-            {formatCurrency(outlook.cashflow.incomeTaxProvision.value)} d’impôt sur le CA de ce mois.
+            {`Vire ces ${formatCurrency(outlook.cashflow.urssafProvision.value + outlook.cashflow.incomeTaxProvision.value)} sur le compte provision. L’Urssaf et l’impôt dus sur le CA ${formatMonthComplement(previousMonth)} (${formatCurrency(outlook.cashflow.carriedUrssaf + outlook.cashflow.carriedIncomeTax)}) se paient depuis ce compte, pas sur ton reste à vivre.`}
           </p>
         </Panel>
 

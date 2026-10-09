@@ -4,6 +4,7 @@ import { mrrForecast, weightedPipelineForMonth } from '../crm/weightedPipeline';
 import { calculateAccountBalances, calculateAvailableCash } from '../operations';
 import { buildMonthlyCashflowSeries } from './cashflowSeries';
 import {
+  calculateResteAVivre,
   collectedRevenueForMonth,
   listCoveredMonths,
   otherIncomeForMonth,
@@ -151,20 +152,17 @@ export const buildForecastMonths = (
   return horizon.map((month) => {
     const isEstimated = compareMonths(month, fromMonth) > 0;
     const cashflow = cashflowSeries.find((entry) => entry.month === month);
-    const netFinal = cashflow?.netFinal.value ?? 0;
-    // L'impôt généré par le CA de ce mois n'est prélevé que le mois suivant
-    // (même décalage que l'Urssaf, déjà appliqué dans netFinal) : c'est
-    // l'impôt hérité du mois précédent qui pèse ici.
-    const carriedIncomeTax = cashflow?.carriedIncomeTax ?? 0;
     // Un mois estimé n'a par construction aucune dépense ponctuelle ni
     // encaissement hors CA saisis : ils resteraient à 0 même sans ce garde-fou,
     // il documente juste l'intention plutôt que de la laisser implicite.
     const variableExpenses = isEstimated ? 0 : variableExpensesForMonth(data, month);
     const otherIncome = isEstimated ? 0 : otherIncomeForMonth(data, month);
 
-    const resteAVivre = roundCurrency(
-      netFinal - carriedIncomeTax - recurringCharges.total - variableExpenses + otherIncome,
-    );
+    // Même définition que le tableau de bord : provision du CA du mois retirée
+    // tout de suite (voir `calculateResteAVivre`).
+    const resteAVivre = cashflow
+      ? calculateResteAVivre(cashflow, recurringCharges.total, variableExpenses, otherIncome)
+      : roundCurrency(otherIncome - recurringCharges.total - variableExpenses);
 
     // Le mois courant part de la photo réelle des comptes. Au-delà, un reste
     // à vivre positif est par définition de l'argent destiné à être vécu — pas

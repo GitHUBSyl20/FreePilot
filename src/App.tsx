@@ -4,6 +4,7 @@ import {
   addInvoice,
   addOtherIncome,
   addRecurringCharge,
+  buildAREDaysBalance,
   buildFinanceSeries,
   buildForecastMonths,
   createTransfer,
@@ -243,6 +244,7 @@ export const App = () => {
       {page === 'are' ? (
         <AREMonthsView
           currentMonth={currentMonth}
+          daysBalance={buildAREDaysBalance(series, data.settings, currentMonth)}
           entries={data.areMonths}
           onDelete={(month) => saveData(deleteAREMonth(data, month))}
           onSave={(input) => saveData(upsertAREMonth(data, input))}

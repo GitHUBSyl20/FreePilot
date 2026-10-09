@@ -104,9 +104,10 @@ describe('projection mensuelle', () => {
     expect(outlook.cashflow.netFinal.value).toBe(1142);
   });
 
-  it('déduit l’impôt hérité du mois précédent, les charges fixes et les dépenses ponctuelles du reste à vivre', () => {
-    // 1142 − 72,6 (impôt dû sur le CA de mai, 1000 × 66 % × 11 %, prélevé en juin) − 800 − 50
-    expect(outlook.resteAVivre.value).toBe(219.4);
+  it('retire du reste à vivre la provision Urssaf et impôt du CA du mois, les charges fixes et les dépenses ponctuelles', () => {
+    // CA 800 − Urssaf 206,4 (800 × 25,8 %) − impôt 58,08 (800 × 66 % × 11 %) + ARE 600 − charges 800 − dépense 50.
+    // L'Urssaf et l'impôt hérités de mai (258 et 72,6) sont payés depuis la provision : ils ne pèsent pas ici.
+    expect(outlook.resteAVivre.value).toBe(285.52);
     expect(outlook.variableExpenses).toBe(50);
   });
 
@@ -129,8 +130,8 @@ describe('projection mensuelle', () => {
     expect(withRefund.cashflow.collectedRevenue).toBe(800);
     expect(withRefund.cashflow.urssafProvision.value).toBe(outlook.cashflow.urssafProvision.value);
     expect(withRefund.nextMonthARE).toBe(outlook.nextMonthARE);
-    // 219,4 + 946
-    expect(withRefund.resteAVivre.value).toBe(1165.4);
+    // 285,52 + 946
+    expect(withRefund.resteAVivre.value).toBe(1231.52);
   });
 
   it('projette l’ARE du mois suivant à partir du CA de ce mois', () => {
@@ -176,7 +177,7 @@ describe('dashboard', () => {
     expect(projection.kpis.areEstimeeM1).toBe(1046.4);
     expect(projection.kpis.netFinal).toBe(1142);
     expect(projection.kpis.chargesFixes).toBe(800);
-    expect(projection.kpis.resteAVivre).toBe(219.4);
+    expect(projection.kpis.resteAVivre).toBe(285.52);
   });
 
   it('laisse les factures en brouillon hors du CA et des factures à encaisser', () => {

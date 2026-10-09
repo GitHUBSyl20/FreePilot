@@ -18,7 +18,10 @@ export type SettingRule = {
  * par pipeline) : elle ne rentre pas dans une règle min/max simple et suit sa
  * propre validation ci-dessous.
  */
-export type NumericSettingKey = Exclude<keyof AppSettings, 'stageProbabilities' | 'versementLiberatoireEnabled'>;
+export type NumericSettingKey = Exclude<
+  keyof AppSettings,
+  'stageProbabilities' | 'versementLiberatoireEnabled' | 'remainingAREDaysAsOf'
+>;
 
 /**
  * Bornes de saisie de chaque réglage.
@@ -104,6 +107,12 @@ export const sanitizeSettings = (current: AppSettings, patch: Partial<AppSetting
 
   if (typeof patch.versementLiberatoireEnabled === 'boolean') {
     next.versementLiberatoireEnabled = patch.versementLiberatoireEnabled;
+  }
+
+  if (patch.remainingAREDaysAsOf === null) {
+    next.remainingAREDaysAsOf = null;
+  } else if (typeof patch.remainingAREDaysAsOf === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(patch.remainingAREDaysAsOf)) {
+    next.remainingAREDaysAsOf = patch.remainingAREDaysAsOf;
   }
 
   if (patch.stageProbabilities) {
