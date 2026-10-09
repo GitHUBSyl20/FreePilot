@@ -17,7 +17,11 @@ export type AppSettings = {
   prudentIncomeTaxProvisionRate: number;
   versementLiberatoireEnabled: boolean;
   versementLiberatoireRateBNC: number;
-  /** CA mensuel couvrant les charges fixes : le plancher à tenir. */
+  /**
+   * Ancien palier saisi à la main, conservé pour les sauvegardes existantes.
+   * L'interface utilise désormais `calculateSafetyThreshold`, dérivé des
+   * charges fixes et de `monthlyLivingBudget`.
+   */
   monthlyRevenueSafetyThreshold: number;
   /**
    * Ancien palier saisi à la main, conservé pour les sauvegardes existantes.
@@ -25,6 +29,11 @@ export type AppSettings = {
    * et des taux.
    */
   monthlyRevenueTakeoffThreshold: number;
+  /**
+   * Budget de vie mensuel en plus des charges fixes (courses, essence,
+   * loisirs) : entre dans le palier sécurité.
+   */
+  monthlyLivingBudget: number;
   /**
    * Délais au-delà desquels un prospect sans relance planifiée remonte comme
    * à relancer, par température. Un contact chaud se refroidit vite, un contact

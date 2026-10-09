@@ -7,6 +7,7 @@ export * from './storage';
 export * from './calculations/are';
 export * from './calculations/netAvailable';
 export * from './calculations/tax';
+export * from './calculations/thresholds';
 export * from './calculations/urssaf';
 export * from './migrate';
 export * from './crm/channels';

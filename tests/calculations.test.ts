@@ -11,6 +11,7 @@ import {
   calculateEstimatedARE,
   calculateIncomeTaxProvision,
   calculateNetAvailable,
+  calculateSafetyThreshold,
   calculateTakeoffThreshold,
   calculateUrssafProvision,
   createInitialFinanceData,
@@ -38,6 +39,7 @@ const settings: AppSettings = {
   versementLiberatoireRateBNC: 2.2,
   monthlyRevenueSafetyThreshold: 1000,
   monthlyRevenueTakeoffThreshold: 1500,
+  monthlyLivingBudget: 0,
   hotProspectFollowUpDays: 7,
   warmProspectFollowUpDays: 21,
   coldProspectFollowUpDays: 60,
@@ -241,6 +243,25 @@ describe('palier décollage', () => {
 
   it('renvoie 0 avec un avertissement quand les prélèvements absorbent tout le CA', () => {
     const result = calculateTakeoffThreshold({ ...settings, totalUrssafProvisionRate: 100 });
+
+    expect(result.value).toBe(0);
+    expect(result.warnings.length).toBeGreaterThan(0);
+  });
+});
+
+describe('palier sécurité', () => {
+  it('donne le CA dont le net paie les charges fixes, sans ARE', () => {
+    // 1112,97 / (1 − 25,8 % − 7,26 %) = 1112,97 / 0,6694
+    expect(calculateSafetyThreshold(settings, 1112.97).value).toBe(1662.64);
+  });
+
+  it('ajoute le budget de vie aux charges fixes', () => {
+    // (1112,97 + 600) / 0,6694
+    expect(calculateSafetyThreshold({ ...settings, monthlyLivingBudget: 600 }, 1112.97).value).toBe(2558.96);
+  });
+
+  it('renvoie 0 avec un avertissement quand les prélèvements absorbent tout le CA', () => {
+    const result = calculateSafetyThreshold({ ...settings, totalUrssafProvisionRate: 100 }, 1112.97);
 
     expect(result.value).toBe(0);
     expect(result.warnings.length).toBeGreaterThan(0);

@@ -252,7 +252,9 @@ export const App = () => {
 
       {page === 'settings' ? (
         <section className="details-stack single">
-          <SettingsView onSave={(nextSettings) => saveData(updateSettings(data, nextSettings))} settings={data.settings} />
+          <SettingsView
+            monthlyFixedCharges={projection.outlook.recurringCharges.total}
+            onSave={(nextSettings) => saveData(updateSettings(data, nextSettings))} settings={data.settings} />
         </section>
       ) : null}
 

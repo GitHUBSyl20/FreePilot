@@ -1,5 +1,5 @@
 import type { AppSettings, DashboardProjection, ForecastMonth } from '@freepilot/finance-core';
-import { addMonths, calculateTakeoffThreshold } from '@freepilot/finance-core';
+import { addMonths, calculateSafetyThreshold, calculateTakeoffThreshold } from '@freepilot/finance-core';
 import { InfoRow, Panel } from '../components/Panel';
 import { formatCurrency, formatMonthComplement, formatMonthLabel } from '../format';
 
@@ -41,7 +41,7 @@ export function DashboardView({ forecastMonths, projection, settings, onAddExpen
         <Panel title="CA encaissé ce mois">
           <ThresholdGauge
             collectedRevenue={kpis.caEncaisse}
-            safety={settings.monthlyRevenueSafetyThreshold}
+            safety={calculateSafetyThreshold(settings, outlook.recurringCharges.total).value}
             takeoff={calculateTakeoffThreshold(settings).value}
           />
         </Panel>
@@ -138,7 +138,7 @@ function ThresholdGauge({
         <span className="gauge-marker" style={{ left: percent(safety) }} />
         <span className="gauge-marker takeoff" style={{ left: percent(takeoff) }} />
       </div>
-      <InfoRow label="Palier sécurité" helper="Couvre les charges fixes" value={formatCurrency(safety)} />
+      <InfoRow label="Palier sécurité" helper="Charges fixes + budget de vie, sans ARE" value={formatCurrency(safety)} />
       <InfoRow label="Palier décollage" helper="Net après Urssaf et impôt = ton ARE pleine" value={formatCurrency(takeoff)} />
       <p className="muted-note">
         Situation : {reached}

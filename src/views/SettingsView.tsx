@@ -3,6 +3,7 @@ import {
   calculateARECutoff,
   calculateAREDeduction,
   calculateIncomeTaxProvision,
+  calculateSafetyThreshold,
   calculateTakeoffThreshold,
   calculateTheoreticalMonthlyARE,
   sanitizeSettings,
@@ -86,9 +87,13 @@ const groups: Group[] = [
     ],
   },
   {
-    title: 'Paliers de CA',
+    title: 'Budget',
     fields: [
-      { key: 'monthlyRevenueSafetyThreshold', label: 'Palier sécurité (€)', helper: 'CA mensuel couvrant les charges fixes.' },
+      {
+        key: 'monthlyLivingBudget',
+        label: 'Budget de vie mensuel (€)',
+        helper: 'Courses, essence, loisirs : ce qui s’ajoute aux charges fixes.',
+      },
     ],
   },
 ];
@@ -103,10 +108,12 @@ const toDraft = (settings: AppSettings): Draft =>
 
 type Props = {
   settings: AppSettings;
+  /** Total des charges fixes actives, pour afficher le palier sécurité. */
+  monthlyFixedCharges: number;
   onSave: (settings: AppSettings) => void;
 };
 
-export function SettingsView({ onSave, settings }: Props) {
+export function SettingsView({ monthlyFixedCharges, onSave, settings }: Props) {
   const [draft, setDraft] = useState<Draft>(() => toDraft(settings));
   const [liberatoire, setLiberatoire] = useState(settings.versementLiberatoireEnabled);
   const [saved, setSaved] = useState(false);
@@ -156,6 +163,11 @@ export function SettingsView({ onSave, settings }: Props) {
           helper="CA encaissé au-delà duquel l'ARE du mois suivant tombe à zéro"
           label="Seuil de coupure"
           value={formatCurrency(calculateARECutoff(preview).value)}
+        />
+        <InfoRow
+          helper={`CA dont le net paie tes charges fixes (${formatCurrency(monthlyFixedCharges)}) et ton budget de vie, sans ARE`}
+          label="Palier sécurité"
+          value={formatCurrency(calculateSafetyThreshold(preview, monthlyFixedCharges).value)}
         />
         <InfoRow
           helper="CA dont le net après Urssaf et impôt égale l'ARE pleine"
