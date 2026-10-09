@@ -116,6 +116,7 @@ type Props = {
 export function SettingsView({ monthlyFixedCharges, onSave, settings }: Props) {
   const [draft, setDraft] = useState<Draft>(() => toDraft(settings));
   const [liberatoire, setLiberatoire] = useState(settings.versementLiberatoireEnabled);
+  const [daysAsOf, setDaysAsOf] = useState(settings.remainingAREDaysAsOf ?? '');
   const [saved, setSaved] = useState(false);
 
   const numericPatch: Partial<Record<NumericSettingKey, number>> = {};
@@ -127,7 +128,11 @@ export function SettingsView({ monthlyFixedCharges, onSave, settings }: Props) {
   // Les effets se calculent sur les réglages tels qu'ils seront enregistrés,
   // bornes appliquées : autrement l'écran annoncerait des conséquences que
   // l'enregistrement ne produirait pas.
-  const preview = sanitizeSettings(settings, { ...numericPatch, versementLiberatoireEnabled: liberatoire });
+  const preview = sanitizeSettings(settings, {
+    ...numericPatch,
+    versementLiberatoireEnabled: liberatoire,
+    remainingAREDaysAsOf: daysAsOf === '' ? null : daysAsOf,
+  });
   const dirty = JSON.stringify(preview) !== JSON.stringify(settings);
 
   // Sur 100 € de CA, la valeur renvoyée par le moteur est directement le
@@ -145,6 +150,7 @@ export function SettingsView({ monthlyFixedCharges, onSave, settings }: Props) {
     onSave(preview);
     setDraft(toDraft(preview));
     setLiberatoire(preview.versementLiberatoireEnabled);
+    setDaysAsOf(preview.remainingAREDaysAsOf ?? '');
     setSaved(true);
   };
 
@@ -206,6 +212,23 @@ export function SettingsView({ monthlyFixedCharges, onSave, settings }: Props) {
                 value={draft[field.key] ?? ''}
               />
               {field.effect ? <p className="field-effect">{field.effect(effects)}</p> : null}
+              {field.key === 'remainingAREDays' ? (
+                <>
+                  <label htmlFor="setting-remainingAREDaysAsOf">Relevé au</label>
+                  <p className="muted-note">
+                    Date du relevé : seuls les mois suivants sont décomptés. Suivi dans l’onglet ARE.
+                  </p>
+                  <input
+                    id="setting-remainingAREDaysAsOf"
+                    onChange={(event) => {
+                      setDaysAsOf(event.target.value);
+                      setSaved(false);
+                    }}
+                    type="date"
+                    value={daysAsOf}
+                  />
+                </>
+              ) : null}
             </div>
           ))}
         </Panel>

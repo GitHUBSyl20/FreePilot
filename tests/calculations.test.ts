@@ -29,6 +29,7 @@ const settings: AppSettings = {
   areDailyAmount: 50.39,
   theoreticalMonthlyDays: 30,
   remainingAREDays: 440,
+  remainingAREDaysAsOf: null,
   bncAbatementRate: 34,
   franceTravailDeductionRate: 70,
   urssafSocialContributionRate: 25.6,

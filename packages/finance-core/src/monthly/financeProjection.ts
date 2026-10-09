@@ -27,6 +27,33 @@ export const sumRecurringCharges = (charges: RecurringCharge[]): RecurringCharge
   return { professional, personal, total: roundCurrency(professional + personal) };
 };
 
+/**
+ * Reste à vivre : ce qui peut réellement être dépensé ce mois-ci.
+ *
+ * L'Urssaf et l'impôt générés par le CA du mois sont retirés tout de suite,
+ * même s'ils ne sont prélevés que le mois suivant : cette somme part sur le
+ * compte provision et n'est pas dépensable. Symétriquement, l'Urssaf et
+ * l'impôt hérités du mois précédent ne pèsent pas ici : ils sont payés depuis
+ * la provision constituée le mois dernier. Sans cela, un mois encaissé
+ * paraissait riche et le suivant pauvre, alors que l'argent dépensable était
+ * le même.
+ */
+export const calculateResteAVivre = (
+  cashflow: MonthlyCashflow,
+  fixedCharges: number,
+  variableExpenses: number,
+  otherIncome: number,
+): number =>
+  roundCurrency(
+    cashflow.collectedRevenue -
+      cashflow.urssafProvision.value -
+      cashflow.incomeTaxProvision.value +
+      cashflow.effectiveARE -
+      fixedCharges -
+      variableExpenses +
+      otherIncome,
+  );
+
 export const collectedRevenueForMonth = (data: FinanceData, month: string): number =>
   roundCurrency(
     data.invoices
@@ -126,16 +153,7 @@ export const projectMonthlyOutlook = (data: FinanceData, month: string): Monthly
   const variableExpenses = variableExpensesForMonth(data, month);
   const otherIncome = otherIncomeForMonth(data, month);
 
-  // L'impôt généré par le CA de ce mois n'est prélevé que le mois suivant
-  // (même décalage que l'Urssaf, déjà appliqué dans cashflow.netFinal) : c'est
-  // l'impôt hérité du mois précédent qui pèse sur le reste à vivre de celui-ci.
-  const resteAVivreValue = roundCurrency(
-    cashflow.netFinal.value -
-      cashflow.carriedIncomeTax -
-      recurringCharges.total -
-      variableExpenses +
-      otherIncome,
-  );
+  const resteAVivreValue = calculateResteAVivre(cashflow, recurringCharges.total, variableExpenses, otherIncome);
 
   const areEntry = data.areMonths.find((entry) => entry.month === addMonths(month, 1));
 
@@ -147,10 +165,11 @@ export const projectMonthlyOutlook = (data: FinanceData, month: string): Monthly
     otherIncome,
     resteAVivre: {
       value: resteAVivreValue,
-      formula: `${cashflow.netFinal.value} - ${cashflow.carriedIncomeTax} - ${recurringCharges.total} - ${variableExpenses} + ${otherIncome}`,
+      formula: `${cashflow.collectedRevenue} - ${cashflow.urssafProvision.value} - ${cashflow.incomeTaxProvision.value} + ${cashflow.effectiveARE} - ${recurringCharges.total} - ${variableExpenses} + ${otherIncome}`,
       assumptions: [
-        'Trésorerie du mois',
-        'Impôt dû sur le CA du mois précédent',
+        'CA encaissé du mois',
+        'Provision Urssaf et impôt sur ce CA',
+        'ARE du mois',
         'Charges fixes',
         'Dépenses ponctuelles',
         'Encaissements hors CA',

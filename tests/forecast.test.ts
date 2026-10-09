@@ -59,9 +59,9 @@ describe('prévisionnel multi-mois', () => {
     expect(current.month).toBe('2026-06');
     expect(current.isEstimated).toBe(false);
     expect(current.collectedRevenue).toBe(800);
-    // Même valeur que outlook.resteAVivre dans financeProjection.test.ts : 219,4
-    // (netFinal 1142 − impôt de mai porté sur juin 72,6 − charges 800 − dépense 50).
-    expect(current.resteAVivre).toBe(219.4);
+    // Même valeur que outlook.resteAVivre dans financeProjection.test.ts :
+    // 800 − 206,4 − 58,08 (provision sur le CA de juin) + ARE 600 − charges 800 − dépense 50.
+    expect(current.resteAVivre).toBe(285.52);
   });
 
   it('projette les mois futurs à partir du pipeline pondéré (nul ici), reconduit l’ARE et porte l’Urssaf/impôt du mois précédent', () => {
@@ -74,10 +74,9 @@ describe('prévisionnel multi-mois', () => {
     // ARE pleine reconduite à 1416, déduction héritée du CA de juin (800) :
     // 1416 − (800 × (1 − 34 %) × 70 %) = 1046,4, comme nextMonthARE en juin.
     expect(july.effectiveARE).toBe(1046.4);
-    // netFinal = CA (0) − Urssaf due sur le CA de juin (800 × 25,8 % = 206,4) + ARE (1046,4) = 840.
-    // resteAVivre = 840 − impôt dû sur le CA de juin (800 × 66 % × 11 % = 58,08) − charges (800) = −18,08.
-    // Un mois sans CA propre ne couvre donc pas les impôts hérités du mois précédent.
-    expect(july.resteAVivre).toBe(-18.08);
+    // resteAVivre = CA (0) − provision sur ce CA (0) + ARE (1046,4) − charges (800) = 246,4.
+    // L'Urssaf et l'impôt dus sur le CA de juin ont été provisionnés en juin : ils ne pèsent pas sur juillet.
+    expect(july.resteAVivre).toBe(246.4);
   });
 
   it('un mois estimé positif ne fait pas grimper la trésorerie : le reste à vivre part dans le quotidien', () => {
@@ -86,13 +85,12 @@ describe('prévisionnel multi-mois', () => {
 
     // pro : 0 − 50 (dépense) = −50 ; perso : 200 ; épargne exclue du disponible.
     expect(june.cumulativeCash).toBe(150);
-    // Juillet est déficitaire (Urssaf/impôt hérités de juin, sans CA propre) : entame la réserve.
-    expect(july.resteAVivre).toBeLessThan(0);
-    expect(july.cumulativeCash).toBeCloseTo(150 + july.resteAVivre, 2);
-    // Août n'hérite plus que d'un Urssaf/impôt nuls (juillet sans CA) : redevient positif,
-    // supposé dépensé, la trésorerie reste donc au niveau de juillet.
+    // Juillet (246,4) et août (ARE pleine 1416 − 800 = 616) sont positifs : supposés
+    // dépensés, ils laissent la trésorerie au niveau de juin.
+    expect(july.resteAVivre).toBeGreaterThan(0);
     expect(august.resteAVivre).toBeGreaterThan(0);
-    expect(august.cumulativeCash).toBe(july.cumulativeCash);
+    expect(july.cumulativeCash).toBe(150);
+    expect(august.cumulativeCash).toBe(150);
   });
 
   it('un mois estimé déficitaire entame réellement la trésorerie', () => {

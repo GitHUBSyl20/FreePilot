@@ -1,9 +1,10 @@
-import type { MonthlyAREEntry, MonthlyCashflow } from '@freepilot/finance-core';
+import type { AREDaysBalance, MonthlyAREEntry, MonthlyCashflow } from '@freepilot/finance-core';
 import { useState } from 'react';
 import { EmptyState, InfoRow, Panel } from '../components/Panel';
-import { formatCurrency, formatDays, formatMonthLabel, parseAmount } from '../format';
+import { formatCurrency, formatDate, formatDays, formatMonthLabel, parseAmount } from '../format';
 
 type Props = {
+  daysBalance: AREDaysBalance;
   entries: MonthlyAREEntry[];
   series: MonthlyCashflow[];
   currentMonth: string;
@@ -11,7 +12,7 @@ type Props = {
   onDelete: (month: string) => void;
 };
 
-export function AREMonthsView({ currentMonth, entries, onDelete, onSave, series }: Props) {
+export function AREMonthsView({ currentMonth, daysBalance, entries, onDelete, onSave, series }: Props) {
   const [month, setMonth] = useState(currentMonth);
   const [fullARE, setFullARE] = useState('');
   const [actualARE, setActualARE] = useState('');
@@ -39,6 +40,40 @@ export function AREMonthsView({ currentMonth, entries, onDelete, onSave, series 
 
   return (
     <section className="details-stack single">
+      <Panel title="Jours de droits">
+        <InfoRow
+          label="Jours restants"
+          helper={
+            daysBalance.statementDate
+              ? `${formatDays(daysBalance.statementDays)} au ${formatDate(daysBalance.statementDate)}, moins les mois suivants`
+              : 'Renseigne la date du relevé dans ⚙ pour un décompte juste'
+          }
+          value={formatDays(daysBalance.remaining)}
+        />
+        <InfoRow
+          label="Jours reportés grâce au CA"
+          helper="Non consommés : ils reculent ta fin de droits"
+          value={formatDays(daysBalance.deferredTotal)}
+        />
+        <InfoRow
+          label="Fin de droits au plus tôt"
+          helper="Si l’ARE est versée pleine chaque mois à partir de maintenant"
+          value={daysBalance.estimatedLastMonth ? formatMonthLabel(daysBalance.estimatedLastMonth) : '—'}
+        />
+        {daysBalance.months.map((month) => (
+          <InfoRow
+            helper={
+              month.missingARE
+                ? 'ARE non saisie : mois non décompté'
+                : `${formatDays(month.consumed)} consommés · ${formatDays(month.deferred)} reportés`
+            }
+            key={month.month}
+            label={formatMonthLabel(month.month)}
+            value={`${formatDays(month.remaining)} restants`}
+          />
+        ))}
+      </Panel>
+
       <Panel title="Saisir l’ARE d’un mois">
         <div className="field-grid">
           <input

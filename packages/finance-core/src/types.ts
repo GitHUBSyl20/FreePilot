@@ -9,6 +9,12 @@ export type AppSettings = {
   areDailyAmount: number;
   theoreticalMonthlyDays: number;
   remainingAREDays: number;
+  /**
+   * Date du relevé de `remainingAREDays` ('YYYY-MM-DD'). Les jours consommés
+   * ne sont décomptés qu'à partir du mois suivant ce relevé ; sans date, toute
+   * la série connue est décomptée (comportement historique).
+   */
+  remainingAREDaysAsOf: string | null;
   bncAbatementRate: number;
   franceTravailDeductionRate: number;
   urssafSocialContributionRate: number;
