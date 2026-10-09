@@ -11,6 +11,7 @@ import {
   calculateEstimatedARE,
   calculateIncomeTaxProvision,
   calculateNetAvailable,
+  calculateTakeoffThreshold,
   calculateUrssafProvision,
   createInitialFinanceData,
   createTransfer,
@@ -224,5 +225,24 @@ describe('calculation rules', () => {
     const deleted = deleteTransaction(updated, expense!.id);
     expect(deleted.transactions.some((transaction) => transaction.id === expense!.id)).toBe(false);
     expect(projectDashboard(deleted, '2026-05').kpis.resteAVivre).toBe(projectDashboard(data, '2026-05').kpis.resteAVivre + 250);
+  });
+});
+
+describe('palier décollage', () => {
+  it('donne le CA dont le net après Urssaf et impôt égale l’ARE pleine', () => {
+    // 1511,70 / (1 − 25,8 % − 7,26 %) = 1511,70 / 0,6694
+    expect(calculateTakeoffThreshold(settings).value).toBe(2258.29);
+  });
+
+  it('applique le taux du versement libératoire sur le CA brut quand il est activé', () => {
+    // 1511,70 / (1 − 25,8 % − 2,2 %)
+    expect(calculateTakeoffThreshold({ ...settings, versementLiberatoireEnabled: true }).value).toBe(2099.58);
+  });
+
+  it('renvoie 0 avec un avertissement quand les prélèvements absorbent tout le CA', () => {
+    const result = calculateTakeoffThreshold({ ...settings, totalUrssafProvisionRate: 100 });
+
+    expect(result.value).toBe(0);
+    expect(result.warnings.length).toBeGreaterThan(0);
   });
 });
