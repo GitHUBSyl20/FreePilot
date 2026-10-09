@@ -19,7 +19,11 @@ export type AppSettings = {
   versementLiberatoireRateBNC: number;
   /** CA mensuel couvrant les charges fixes : le plancher à tenir. */
   monthlyRevenueSafetyThreshold: number;
-  /** CA mensuel visé pour ne plus dépendre de l'ARE. */
+  /**
+   * Ancien palier saisi à la main, conservé pour les sauvegardes existantes.
+   * L'interface utilise désormais `calculateTakeoffThreshold`, dérivé de l'ARE
+   * et des taux.
+   */
   monthlyRevenueTakeoffThreshold: number;
   /**
    * Délais au-delà desquels un prospect sans relance planifiée remonte comme

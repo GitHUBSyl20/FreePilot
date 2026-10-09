@@ -1,5 +1,5 @@
 import type { AppSettings, DashboardProjection, ForecastMonth } from '@freepilot/finance-core';
-import { addMonths } from '@freepilot/finance-core';
+import { addMonths, calculateTakeoffThreshold } from '@freepilot/finance-core';
 import { InfoRow, Panel } from '../components/Panel';
 import { formatCurrency, formatMonthComplement, formatMonthLabel } from '../format';
 
@@ -42,7 +42,7 @@ export function DashboardView({ forecastMonths, projection, settings, onAddExpen
           <ThresholdGauge
             collectedRevenue={kpis.caEncaisse}
             safety={settings.monthlyRevenueSafetyThreshold}
-            takeoff={settings.monthlyRevenueTakeoffThreshold}
+            takeoff={calculateTakeoffThreshold(settings).value}
           />
         </Panel>
       </section>
@@ -139,7 +139,7 @@ function ThresholdGauge({
         <span className="gauge-marker takeoff" style={{ left: percent(takeoff) }} />
       </div>
       <InfoRow label="Palier sécurité" helper="Couvre les charges fixes" value={formatCurrency(safety)} />
-      <InfoRow label="Palier décollage" helper="Autonomie sans ARE" value={formatCurrency(takeoff)} />
+      <InfoRow label="Palier décollage" helper="Net après Urssaf et impôt = ton ARE pleine" value={formatCurrency(takeoff)} />
       <p className="muted-note">
         Situation : {reached}
         {remaining > 0 ? ` — encore ${formatCurrency(remaining)} pour décoller.` : '.'}

@@ -1,5 +1,7 @@
 import type { AppSettings, CalculationDetail } from '../types';
 import { asRate, roundCurrency, safeNumber } from './common';
+import { calculateIncomeTaxProvision } from './tax';
+import { calculateUrssafProvision } from './urssaf';
 
 export const calculateTheoreticalMonthlyARE = (settings: AppSettings): CalculationDetail => {
   const value = roundCurrency(safeNumber(settings.areDailyAmount) * safeNumber(settings.theoreticalMonthlyDays));
@@ -81,6 +83,32 @@ export const calculateARECutoff = (settings: AppSettings, fullMonthlyARE?: numbe
       fullMonthlyARE === undefined ? 'ARE théorique mensuelle' : 'ARE pleine notifiée',
       'Taux de déduction ARE',
     ],
+    warnings,
+  };
+};
+
+/**
+ * Palier décollage : CA mensuel dont le net, une fois l'Urssaf et l'impôt
+ * provisionnés, rapporte autant que l'ARE pleine. Au-delà, l'activité seule
+ * fait vivre aussi bien que l'allocation.
+ *
+ * Les taux sont lus sur 100 € de CA via les fonctions de provision : la règle
+ * du versement libératoire n'est ainsi écrite qu'une fois.
+ */
+export const calculateTakeoffThreshold = (settings: AppSettings): CalculationDetail => {
+  const fullARE = calculateTheoreticalMonthlyARE(settings).value;
+  const urssafRate = calculateUrssafProvision(100, settings).value / 100;
+  const taxRate = calculateIncomeTaxProvision(100, settings).value / 100;
+  const netRate = 1 - urssafRate - taxRate;
+  const warnings: string[] = [];
+
+  if (fullARE <= 0) warnings.push('ARE théorique nulle : montant journalier ou jours à renseigner.');
+  if (netRate <= 0) warnings.push('Taux Urssaf + impôt supérieurs ou égaux à 100 % du CA.');
+
+  return {
+    value: fullARE > 0 && netRate > 0 ? roundCurrency(fullARE / netRate) : 0,
+    formula: `${fullARE} / (1 - ${roundCurrency(urssafRate * 100)}% - ${roundCurrency(taxRate * 100)}%)`,
+    assumptions: ['ARE théorique mensuelle', 'Provision Urssaf', 'Provision impôt'],
     warnings,
   };
 };

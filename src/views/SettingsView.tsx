@@ -3,6 +3,7 @@ import {
   calculateARECutoff,
   calculateAREDeduction,
   calculateIncomeTaxProvision,
+  calculateTakeoffThreshold,
   calculateTheoreticalMonthlyARE,
   sanitizeSettings,
 } from '@freepilot/finance-core';
@@ -88,11 +89,6 @@ const groups: Group[] = [
     title: 'Paliers de CA',
     fields: [
       { key: 'monthlyRevenueSafetyThreshold', label: 'Palier sécurité (€)', helper: 'CA mensuel couvrant les charges fixes.' },
-      {
-        key: 'monthlyRevenueTakeoffThreshold',
-        label: 'Palier décollage (€)',
-        helper: "CA mensuel visé pour ne plus dépendre de l'ARE.",
-      },
     ],
   },
 ];
@@ -160,6 +156,11 @@ export function SettingsView({ onSave, settings }: Props) {
           helper="CA encaissé au-delà duquel l'ARE du mois suivant tombe à zéro"
           label="Seuil de coupure"
           value={formatCurrency(calculateARECutoff(preview).value)}
+        />
+        <InfoRow
+          helper="CA dont le net après Urssaf et impôt égale l'ARE pleine"
+          label="Palier décollage"
+          value={formatCurrency(calculateTakeoffThreshold(preview).value)}
         />
       </Panel>
 
