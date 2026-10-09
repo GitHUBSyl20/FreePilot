@@ -1,4 +1,5 @@
 import type { EditableInvoice, Prospect } from '@freepilot/finance-core';
+import { sortInvoicesByDateDesc } from '@freepilot/finance-core';
 import { useState } from 'react';
 import { EmptyState, InfoRow, Panel } from '../components/Panel';
 import { formatCurrency, formatDate, parseAmount, today } from '../format';
@@ -174,7 +175,7 @@ export function InvoicesView({
         {invoices.length === 0 ? (
           <EmptyState>Aucune facture enregistrée.</EmptyState>
         ) : (
-          invoices.map((invoice) => (
+          sortInvoicesByDateDesc(invoices).map((invoice) => (
             <div className="charge-row" key={invoice.id}>
               <span className="charge-label">
                 <strong>{invoice.clientName}</strong>{' '}

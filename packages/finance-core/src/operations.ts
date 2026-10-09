@@ -218,6 +218,15 @@ export const updateInvoice = (
   return { ...data, invoices, transactions: [paymentTransaction, ...transactionsWithoutInvoicePayment] };
 };
 
+/**
+ * Factures de la plus récente à la plus ancienne, par date de facturation.
+ * À date égale, l'ordre stocké est conservé : `addInvoice` place la nouvelle
+ * facture en tête, la dernière saisie reste donc devant. Renvoie une copie,
+ * sans toucher à l'ordre stocké.
+ */
+export const sortInvoicesByDateDesc = <T extends { issueDate: string }>(invoices: T[]): T[] =>
+  [...invoices].sort((left, right) => right.issueDate.localeCompare(left.issueDate));
+
 export const deleteInvoice = (data: FinanceData, invoiceId: string): FinanceData => ({
   ...data,
   invoices: data.invoices.filter((invoice) => invoice.id !== invoiceId),
