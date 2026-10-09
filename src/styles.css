@@ -920,3 +920,18 @@ code {
   font-size: 1.4rem;
   color: #14213d;
 }
+
+/* Encaissement en cours : le formulaire passe sous la facture, pleine largeur. */
+.charge-row.marking-paid {
+  flex-wrap: wrap;
+}
+
+.mark-paid-form {
+  display: grid;
+  flex: 1 0 100%;
+  gap: 6px;
+}
+
+.mark-paid-form input {
+  width: 100%;
+}
