@@ -176,13 +176,44 @@ export function InvoicesView({
           <EmptyState>Aucune facture enregistrée.</EmptyState>
         ) : (
           sortInvoicesByDateDesc(invoices).map((invoice) => (
-            <div className="charge-row" key={invoice.id}>
+            <div className={markingPaidId === invoice.id ? 'charge-row marking-paid' : 'charge-row'} key={invoice.id}>
               <span className="charge-label">
                 <strong>{invoice.clientName}</strong>{' '}
                 <span>{[statusSummary(invoice), prospectName(invoice.prospectId)].filter(Boolean).join(' · ')}</span>
               </span>
               <strong className="charge-amount">{formatCurrency(invoice.totalTTC)}</strong>
               {/* Libellés courts pour tenir sur la ligne ; le sens complet est dans l'aria-label. */}
+              {markingPaidId === invoice.id ? (
+                // Ligne dédiée, pleine largeur : glissé dans les actions, le
+                // champ date écrasait le libellé et débordait sur mobile.
+                <div className="mark-paid-form">
+                  <label htmlFor={`paid-date-${invoice.id}`}>Date d’encaissement</label>
+                  <input
+                    id={`paid-date-${invoice.id}`}
+                    onChange={(event) => setMarkingPaidDate(event.target.value)}
+                    type="date"
+                    value={markingPaidDate}
+                  />
+                  <div className="button-row">
+                    <button
+                      aria-label={`Confirmer le paiement de ${invoice.clientName}`}
+                      className="primary-button"
+                      onClick={() => confirmMarkPaid(invoice)}
+                      type="button"
+                    >
+                      Confirmer
+                    </button>
+                    <button
+                      aria-label={`Annuler le paiement de ${invoice.clientName}`}
+                      className="secondary-button"
+                      onClick={() => setMarkingPaidId(null)}
+                      type="button"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              ) : (
               <span className="charge-actions">
                 {invoice.status === 'draft' ? (
                   <button
@@ -194,7 +225,7 @@ export function InvoicesView({
                     Émise
                   </button>
                 ) : null}
-                {invoice.status !== 'paid' && canMarkPaid && markingPaidId !== invoice.id ? (
+                {invoice.status !== 'paid' && canMarkPaid ? (
                   <button
                     aria-label={`Marquer payée la facture ${invoice.clientName}`}
                     className="mini-button"
@@ -203,32 +234,6 @@ export function InvoicesView({
                   >
                     Payée
                   </button>
-                ) : null}
-                {markingPaidId === invoice.id ? (
-                  <>
-                    <input
-                      aria-label={`Date d’encaissement de ${invoice.clientName}`}
-                      onChange={(event) => setMarkingPaidDate(event.target.value)}
-                      type="date"
-                      value={markingPaidDate}
-                    />
-                    <button
-                      aria-label={`Confirmer le paiement de ${invoice.clientName}`}
-                      className="mini-button"
-                      onClick={() => confirmMarkPaid(invoice)}
-                      type="button"
-                    >
-                      Confirmer
-                    </button>
-                    <button
-                      aria-label={`Annuler le paiement de ${invoice.clientName}`}
-                      className="mini-button"
-                      onClick={() => setMarkingPaidId(null)}
-                      type="button"
-                    >
-                      Annuler
-                    </button>
-                  </>
                 ) : null}
                 <button
                   aria-label={`Modifier la facture ${invoice.clientName}`}
@@ -250,6 +255,7 @@ export function InvoicesView({
                   Suppr.
                 </button>
               </span>
+              )}
             </div>
           ))
         )}
